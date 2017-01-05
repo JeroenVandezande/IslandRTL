@@ -30,6 +30,8 @@ type
                                      TimeModifier.Created: new rtl.__struct_timespec(tv_sec := str^.st_ctime, tv_nsec := str^.st_ctime_nsec);
                                      else new rtl.__struct_timespec(tv_sec := str^.st_mtime, tv_nsec := str^.st_mtime_nsec);
                                    end);
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       var str := FileUtils.Get__struct_stat(FullName);
       exit DateTime.FromUnixTimeUTC(

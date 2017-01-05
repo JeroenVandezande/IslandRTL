@@ -67,6 +67,8 @@ type
         end;
       end;
       rtl.CryptGenRandom(fHandle, aLength, @aDest[aStart]);
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       if fHandle = nil then begin 
         var lNew := new FileStream('/dev/urandom', FileMode.Open, FileAccess.Read, FileShare.ReadWrite);

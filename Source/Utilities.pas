@@ -56,16 +56,23 @@ type
 
       if fLoaded = 0 then
         if InternalCalls.CompareExchange(var fLoaded, 1, 0 ) <> 1 then begin
+          {$IFNDEF NOGC}
           gc.GC_INIT;
+          {$ENDIF}
           result := ^Void(-1);
         end;
-
+      {$IFNDEF NOGC}
       result := gc.GC_malloc(aSize);
+      {$ELSE}
+      result := rtl.malloc(aSize);
+      {$ENDIF}
       ^^Void(result)^ := aTTY;
       {$IFDEF WINDOWS}ExternalCalls.{$ELSE}rtl.{$ENDIF}memset(^Byte(result) + sizeOf(^Void), 0, aSize - sizeOf(^Void));
+      {$IFNDEF NOGC}
       if ^^Void(aTTY)[4] <> fFinalizer then begin
         gc.GC_register_finalizer_no_order(result, @GC_finalizer, nil, nil, nil);
       end;
+      {$ENDIF}
     end;
 
     [SymbolName('__newarray')]
@@ -109,6 +116,7 @@ type
       {$ENDIF}
     end;
 
+    {$IFNDEF BAREMETAL}
     class method SpinLockEnter(var x: Integer);
     begin
      loop begin
@@ -117,7 +125,7 @@ type
          Thread.Sleep(1);
      end;
     end;
-
+    
     class method SpinLockExit(var x: Integer);
     begin
       InternalCalls.VolatileWrite(var x, 0);
@@ -147,7 +155,7 @@ type
     begin
       InternalCalls.VolatileWrite(var x, NativeInt(Int64(-1)));
     end;
-
+    {$ENDIF}
     method CalcHash(const buf: ^Void; len: Integer): Integer;
     begin
       var pb:= ^Byte(buf);

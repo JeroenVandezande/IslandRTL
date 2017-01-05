@@ -68,6 +68,8 @@ begin
                         end;
   fHandle := rtl.CreateFileW(lName, lAccess, lShare, nil, lmode, rtl.FILE_ATTRIBUTE_NORMAL, nil);
   CheckForIOError(fHandle <> rtl.INVALID_HANDLE_VALUE);
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   var s: AnsiChar := AnsiChar(case Mode of
                                 FileMode.CreateNew: 'w';
@@ -111,6 +113,8 @@ method FileStream.IsValid: Boolean;
 begin
   {$IFDEF WINDOWS}
   exit fHandle <> rtl.INVALID_HANDLE_VALUE;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   exit fHandle <> nil;
   {$ELSE}
@@ -137,6 +141,8 @@ begin
       CheckForIOError(True);
   end;
   exit lResult + Offset shl 32;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   var lOrigin: Int32 :=  case Origin of
                           SeekOrigin.Begin: rtl.SEEK_SET;
@@ -164,6 +170,8 @@ begin
   {$IFDEF WINDOWS}
     rtl.CloseHandle(fHandle);
     fHandle := rtl.INVALID_HANDLE_VALUE;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
     CheckForIOError(rtl.fclose(fHandle));
     fHandle := nil;
@@ -179,6 +187,8 @@ begin
   Seek(value, SeekOrigin.Begin);
   {$IFDEF WINDOWS}
   CheckForIOError(rtl.SetEndOfFile(fHandle));
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   {$HINT POSIX FileStream.SetLength. it may not work correctly, because _IO_FILE could be no updated }
   var fd := rtl.fileno(fHandle);
@@ -197,6 +207,8 @@ begin
   var res: rtl.DWORD;
   CheckForIOError(rtl.ReadFile(fHandle,buf,Count,@res,nil));
   exit res;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   exit rtl.fread(buf, 1, Count, fHandle);
   {$ELSE}
@@ -213,6 +225,8 @@ begin
   var res: rtl.DWORD;
   CheckForIOError(rtl.WriteFile(fHandle,buf,Count,@res,nil));
   exit res;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   exit rtl.fwrite(buf, 1, Count, fHandle);
   {$ELSE}
@@ -225,6 +239,8 @@ begin
   if not CanWrite then raise new NotSupportedException;
   {$IFDEF WINDOWS}
   rtl.FlushFileBuffers(fHandle);
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   var fd := rtl.fileno(fHandle);
   CheckForIOError(rtl.fsync(fd));

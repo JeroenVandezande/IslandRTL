@@ -29,15 +29,19 @@ end;
 
 method ObjectPool<T>.Acquire: T;
 begin
+  {$IFNDEF BAREMETAL}
   Utilities.SpinLockEnter(var fLock);
   try
+  {$ENDIF}
     if fLeft > 0 then begin
       result := fSpare[fLeft];
       dec(fLeft);
     end;
+  {$IFNDEF BAREMETAL}
   finally
     Utilities.SpinLockExit(var fLock);
   end;
+  {$ENDIF}
   if result = nil then
     result := fCreator();
 end;
@@ -45,15 +49,19 @@ end;
 method ObjectPool<T>.Release(aVal: T);
 begin
   fCleanup(aVal);
+  {$IFNDEF BAREMETAL}
   Utilities.SpinLockEnter(var fLock);
   try
+  {$ENDIF}
     if fLeft < length(fSpare) then begin
       fSpare[fLeft] := aVal;
       inc(fLeft);
     end;
+  {$IFNDEF BAREMETAL}
   finally
     Utilities.SpinLockExit(var fLock);
   end;
+  {$ENDIF}
 end;
 
 end.

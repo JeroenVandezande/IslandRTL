@@ -115,6 +115,8 @@ type
         r.Data4_7 := lg.Data4[7];
         exit r;
       end;
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF Posix}
       var data: array[0..15] of Byte;
       data[6] := (data[6] and $0F) or 64; // version 4

@@ -360,8 +360,8 @@ begin
   if (aCount < 0) or (&Index + aCount > fCount) then RaiseError('aCount does not denote a valid range of elements');
 
   var newlength := fCount-aCount;
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memmove(@fItems[&Index], @fItems[&Index+aCount], (newlength-&Index) * sizeOf(T));
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memset(@fItems[newlength], 0, (fCount - newlength) * sizeOf(T));
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memmove(@fItems[&Index], @fItems[&Index+aCount], (newlength-&Index) * sizeOf(T));
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memset(@fItems[newlength], 0, (fCount - newlength) * sizeOf(T));
   fCount := newlength;
 end;
 

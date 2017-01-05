@@ -1,6 +1,7 @@
 ﻿namespace RemObjects.Elements.System;
-
+{$IFNDEF BAREMETAL}
 type
+  
   ManagedThreadPool = class(IDisposable)
   private
     fWakeup: EventWaitHandle;
@@ -84,5 +85,5 @@ type
       fWakeup.Dispose;
     end;
   end;
-
+  {$ENDIF}
 end.

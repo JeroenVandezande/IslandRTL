@@ -14,11 +14,11 @@
     <ProjectGuid>{3bd02559-a9c9-4ead-8153-0ce7f9b9efe1}</ProjectGuid>
     <Mode>Island</Mode>
     <WarnOnCaseMismatch>True</WarnOnCaseMismatch>
-    <DefineConstants>NOGC</DefineConstants>
+    <DefineConstants>NOGC,BAREMETAL</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OutputPath>Bin\Debug</OutputPath>
-    <DefineConstants>NOGC</DefineConstants>
+    <DefineConstants>NOGC,BAREMETAL</DefineConstants>
     <EnableAsserts>True</EnableAsserts>
     <Optimize>False</Optimize>
     <GeneratePDB>True</GeneratePDB>
@@ -34,7 +34,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <OutputPath>Bin\Release</OutputPath>
-    <DefineConstants>NOGC</DefineConstants>
+    <DefineConstants>NOGC,BAREMETAL</DefineConstants>
     <EnableAsserts>False</EnableAsserts>
     <GeneratePDB>False</GeneratePDB>
     <GenerateMDB>False</GenerateMDB>

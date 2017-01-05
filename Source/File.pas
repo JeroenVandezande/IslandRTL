@@ -38,6 +38,8 @@ begin
   if not Exists then raise new Exception('File is not exist:'+FullName);
   {$IFDEF WINDOWS}
   CheckForIOError(rtl.CopyFileW(FullName.ToFileName(),FullPathName.ToFileName(),True));
+  {$ELSEIF BAREMETAL}
+      //TODO
   {$ELSEIF POSIX}
   var f2 := new FileStream(FullPathName,FileMode.CreateNew,FileAccess.Write,FileShare.None);
   var f1 := new FileStream(Self.FullName,FileMode.Open,FileAccess.Read,FileShare.Read);
@@ -64,6 +66,8 @@ begin
   if not Exists then raise new Exception('File is not found:'+FullName);
   {$IFDEF WINDOWS}
   CheckForIOError(rtl.DeleteFileW(FullName.ToFileName()));
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   CheckForIOError(rtl.remove(FullName.ToFileName()));  
   {$ELSE}{$ERROR}
@@ -83,6 +87,8 @@ begin
   if not Exists then raise new Exception('File is not exist:'+FullName);
   {$IFDEF WINDOWS}
   CheckForIOError(rtl.MoveFileExW(Self.FullName.ToFileName(),FullPathName.ToFileName(), rtl.MOVEFILE_REPLACE_EXISTING OR rtl.MOVEFILE_COPY_ALLOWED));
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   CheckForIOError(rtl.rename(Self.FullName.ToFileName(),FullPathName.ToFileName()));
   {$ELSE}{$ERROR}
@@ -125,6 +131,8 @@ begin
   finally
     rtl.CloseHandle(handle);
   end;
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   exit FileUtils.Get__struct_stat(FullName)^.st_size;
   {$ELSE}{$ERROR}{$ENDIF}

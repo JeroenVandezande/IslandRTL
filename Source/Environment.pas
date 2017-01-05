@@ -54,6 +54,8 @@ type
         CheckForLastError;
       end;
       exit String.FromPChar(@buf[0],len);
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       var lName := Name.ToAnsiChars;
       exit String.FromPAnsiChars(rtl.getenv(@lName[0]));
@@ -90,6 +92,8 @@ type
           exit new String(@buf[0]);
         
       end;
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       var lCwd := rtl.get_current_dir_name();
       result := String.FromPAnsiChars(lCwd);
@@ -102,6 +106,8 @@ type
       var fn: String;
       {$IFDEF WINDOWS}
       fn := Environment.GetEnvironmentVariable('USERPROFILE');
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       //var pw: ^rtl.__struct_passwd := rtl.getpwuid(rtl.getuid());
       fn := String.FromPAnsiChars(rtl.getpwuid(rtl.getuid())^.pw_dir);

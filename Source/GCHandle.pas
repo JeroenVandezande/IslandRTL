@@ -1,6 +1,7 @@
 ﻿namespace RemObjects.Elements.System;
-
+{$IFNDEF NOGC}
 type 
+  
   GCHandle = public record(IDisposable)
   private 
     fHandle: NativeInt;
@@ -90,5 +91,5 @@ type
       end;
     end;
   end;
-
+  {$ENDIF}
 end.

@@ -20,7 +20,7 @@ type
     class method RaiseError(aMessage: String);
     method CheckIndex(aIndex: Integer);
   assembly
-    {$IFDEF POSIX AND NOT ANDROID}
+    {$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
     class var fUTF16ToCurrent, fCurrentToUtf16: rtl.iconv_t;
     {$ENDIF}
     class method AllocString(aLen: Integer): String;
@@ -100,7 +100,7 @@ type
     constructor(c: ^AnsiChar);
   end;
 
-{$IFDEF POSIX AND NOT ANDROID}
+{$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
 method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.size_t; suggestedlength: Integer; out aresult: ^AnsiChar): Integer; public;
 {$ENDIF}
 
@@ -109,10 +109,10 @@ implementation
 class method String.FromPChar(c: ^Char; aCharCount: Integer): String;
 begin
   result := AllocString(aCharCount);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, c, aCharCount * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, c, aCharCount * 2);
 end;
 
-{$IFDEF POSIX AND NOT ANDROID}
+{$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
 method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.size_t; suggestedlength: Integer; out aresult: ^AnsiChar): Integer;
 begin
   var outputdata := ^AnsiChar(rtl.malloc(suggestedlength));
@@ -195,15 +195,15 @@ begin
   if (Object(aLeft) = nil) or (aLeft.Length = 0) then exit aRight;
   if (Object(aRight) = nil) or (aRight.Length = 0) then exit aLeft;
   result := AllocString(aLeft.Length + aRight.Length);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @aLeft.fFirstChar, aLeft.Length * 2);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + aLeft.Length, @aRight.fFirstChar, aRight.Length * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @aLeft.fFirstChar, aLeft.Length * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + aLeft.Length, @aRight.fFirstChar, aRight.Length * 2);
 end;
 
 class operator String.Add(aLeft: String; aChar: Char): String;
 begin
   if (Object(aLeft) = nil) or (aLeft.Length = 0) then exit aChar;
   result := AllocString(aLeft.Length + 1);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @aLeft.fFirstChar, aLeft.Length * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @aLeft.fFirstChar, aLeft.Length * 2);
   (@result.fFirstChar)[aLeft.Length] := aChar;
 end;
 
@@ -211,7 +211,7 @@ class operator String.Add(aLeft: Char; aRight: String): String;
 begin
   if (Object(aRight) = nil) or (aRight.Length = 0) then exit aLeft;
   result := AllocString(aRight.Length + 1);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + 1, @aRight.fFirstChar, aRight.Length * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + 1, @aRight.fFirstChar, aRight.Length * 2);
   (@result.fFirstChar)[0] := aLeft;
 end;
 
@@ -603,6 +603,8 @@ method String.ToLower(aInvariant: Boolean := false): String;
 begin
   {$IFDEF WINDOWS}
   exit doLCMapString(aInvariant, LCMapStringTransformMode.Lower);
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX} raise new NotImplementedException;
   {$ELSE}{$ERROR}
   {$ENDIF}
@@ -612,6 +614,8 @@ method String.ToUpper(aInvariant: Boolean := false): String;
 begin
   {$IFDEF WINDOWS}
   exit doLCMapString(aInvariant, LCMapStringTransformMode.Upper);
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX} raise new NotImplementedException;
   {$ELSE}{$ERROR}
   {$ENDIF}
@@ -621,6 +625,8 @@ method String.MakeInvariantString: String;
 begin
   {$IFDEF WINDOWS}
   exit doLCMapString(true, LCMapStringTransformMode.None);
+  {$ELSEIF BAREMETAL}
+  //TODO
   {$ELSEIF POSIX}
   exit self; {$WARNING POSIX: implement MakeInvariantString}
   {$ELSE}{$ERROR}
@@ -635,7 +641,7 @@ end;
 method String.ToCharArray(aNullTerminate: Boolean := false): array of Char;
 begin
   var r := new array of Char(fLength + if aNullTerminate then 1 else 0);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@r[0], @fFirstChar, fLength * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@r[0], @fFirstChar, fLength * 2);
   if aNullTerminate then r[fLength] := #0;
   exit r;
 end;
@@ -652,7 +658,7 @@ end;
 
 class method String.FromPChar(c: ^Char): String;
 begin
-  exit FromPChar(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}wcslen(c));
+  exit FromPChar(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}wcslen(c));
 end;
 
 class method String.FromChar(c: Char): String;
@@ -669,7 +675,7 @@ end;
 
 class method String.FromPAnsiChars(c: ^AnsiChar): String;
 begin
-  exit FromPAnsiChars(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}strlen(c));
+  exit FromPAnsiChars(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}strlen(c));
 end;
 
 class constructor String;

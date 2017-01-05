@@ -1,5 +1,5 @@
 ﻿namespace RemObjects.Elements.System;
-
+{$IFNDEF BAREMETAL}
 interface
 
 type
@@ -473,5 +473,5 @@ begin
 end;
 
 {$ENDIF}
-
+{$ENDIF}
 end.

@@ -6,6 +6,8 @@ type
   IDisposable = public interface
     method Dispose;
   end;
+
+  {$IFNDEF NOGC OR BAREMETAL}
   Monitor = public class(IDisposable)
   private
     {$IFDEF WINDOWS}
@@ -19,6 +21,7 @@ type
     method Release;
     method Dispose;
   end;
+ {$ENDIF}
   
   SingleLinkedList<T> = class
   where
@@ -62,6 +65,7 @@ begin
     fTail := nil;
 end;
 
+{$IFNDEF NOGC OR BAREMETAL}
 constructor Monitor;
 begin
   {$IFDEF WINDOWS}
@@ -100,5 +104,5 @@ begin
   rtl.pthread_mutex_destroy(@fcs);
   {$ENDIF}
 end;
-
+ {$ENDIF}
 end.

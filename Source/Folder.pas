@@ -9,7 +9,7 @@ type
       if not Exists then raise new Exception('Folder not exists:'+fFullName);
     end;
   public
-    class property Separator: Char read {$IFDEF WINDOWS}'\'{$ELSEIF POSIX}'/'{$ELSE}{$ERROR}{$ENDIF} ;
+    class property Separator: Char read {$IFDEF WINDOWS}'\'{$ELSEIF POSIX OR BAREMETAL}'/'{$ELSE}{$ERROR}{$ENDIF} ;
 
     method CreateFile(FileName: String; FailIfExists: Boolean := false): File;
     begin
@@ -28,6 +28,8 @@ type
     begin
       {$IFDEF WINDOWS}
       CheckForIOError(rtl.RemoveDirectoryW(FullName.ToFileName()));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       CheckForIOError(rtl.rmdir(FullName.ToFileName()));
       {$ELSE}{$ERROR}{$ENDIF}
@@ -42,6 +44,8 @@ type
     begin
       {$IFDEF WINDOWS}
       CheckForIOError(rtl.MoveFileW(FullName.ToFileName(), NewName.ToFileName()));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       CheckForIOError(rtl.rename(FullName.ToFileName(), NewName.ToFileName()));
       {$ELSE}{$ERROR}{$ENDIF}
@@ -67,6 +71,8 @@ type
         if FileUtils.isFile(find.dwFileAttributes) then
           result.Add(new File(Path.Combine(FullName,String.FromPChar(@find.cFileName[0]))));
       until (not rtl.FindNextFileW(hFind, @find));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       // code from http://pubs.opengroup.org/onlinepubs/9699919799/ was used as an example
       var dfd: Int32 := rtl.open(FullName.ToFileName(), rtl.O_RDONLY);
@@ -113,6 +119,8 @@ type
           result.Add(new Folder(Path.Combine(FullName,fn)));
         end;
       until (not rtl.FindNextFileW(hFind, @find));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       // code from http://pubs.opengroup.org/onlinepubs/9699919799/ was used as an example
       var dfd: Int32 := rtl.open(FullName.ToFileName(), rtl.O_RDONLY);
@@ -154,6 +162,8 @@ type
       end;
       {$IFDEF WINDOWS}
       CheckForIOError(rtl.CreateDirectoryW(FolderName.ToFileName(), nil));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       var old_mask := rtl.umask(0);
       try

@@ -8,20 +8,24 @@ type
   private
   protected
   public
-    class method isFolder(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
+    class method isFolder(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX OR BAREMETAL}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
     begin
       {$IFDEF WINDOWS}
       if Attr = rtl.INVALID_FILE_ATTRIBUTES then exit false;
       exit (Attr and rtl.FILE_ATTRIBUTE_DIRECTORY) = rtl.FILE_ATTRIBUTE_DIRECTORY;
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       exit (Attr and rtl.S_IFMT) = rtl.S_IFDIR;	
       {$ELSE}{$ERROR}{$ENDIF}
     end;
-    class method isFile(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
+    class method isFile(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX OR BAREMETAL}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
     begin
       {$IFDEF WINDOWS}
       if Attr = rtl.INVALID_FILE_ATTRIBUTES then exit false;
       exit (Attr and rtl.FILE_ATTRIBUTE_DIRECTORY) <> rtl.FILE_ATTRIBUTE_DIRECTORY;
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       exit (Attr and rtl.S_IFMT) = rtl.S_IFREG;
       {$ELSE}{$ERROR}{$ENDIF}
@@ -31,6 +35,8 @@ type
     begin
       {$IFDEF WINDOWS}
       exit isFolder(rtl.GetFileAttributesW(aFullName.ToFileName()));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       exit isFolder(Get__struct_stat(aFullName)^.st_mode);
       {$ELSE}{$ERROR}{$ENDIF}
@@ -40,6 +46,8 @@ type
     begin
       {$IFDEF WINDOWS}
       exit FileUtils.isFile(rtl.GetFileAttributesW(aFullName.ToFileName()));
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSEIF POSIX}
       exit FileUtils.isFile(FileUtils.Get__struct_stat(aFullName)^.st_mode);
       {$ELSE}{$ERROR}

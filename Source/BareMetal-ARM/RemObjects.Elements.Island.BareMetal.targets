@@ -1,0 +1,82 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <IslandTargetArchitecture>$(Architecture)</IslandTargetArchitecture>
+    <IslandTargetTriple></IslandTargetTriple>
+    <IslandTargetTriple Condition="'$(IslandTargetArchitecture)'=='armv6'">thumbv7m-none-eabi</IslandTargetTriple>
+    <IslandTargetTriple Condition="'$(IslandTargetArchitecture)'=='armv7'">thumbv7m-none-eabi</IslandTargetTriple>
+    <IslandTargetTriple Condition="'$(IslandTargetArchitecture)'=='arm'">thumbv7m-none-eabi</IslandTargetTriple>
+
+    <IslandTargetOS Condition="'$(IslandTargetOS)'==''">BareMetal-ARM</IslandTargetOS>
+    <IslandTargetExt Condition="'$(IslandTargetExt)' == '' and '$(OutputType)'=='library'">.so</IslandTargetExt>
+    <IslandTargetExt Condition="'$(IslandTargetExt)' == '' and '$(OutputType)'=='staticlibrary'">.a</IslandTargetExt>
+    <IslandTargetExt Condition="'$(IslandTargetExt)' == '' and '$(OutputType)'=='object'">.o</IslandTargetExt>
+
+    <IslandExpectedUName>BareMetal-ARM</IslandExpectedUName>
+    <IslandDebuggerType>MI</IslandDebuggerType>
+    <IslandRemoteDebuggerType>gdb</IslandRemoteDebuggerType>
+    <IslandRemoteDebuggerCommand>gdb --interpreter=mi</IslandRemoteDebuggerCommand>
+
+    <ArchiveOutputType></ArchiveOutputType>
+    <ArchiveOutputType Condition="'$(OutputType)'=='staticlibrary'">gnu</ArchiveOutputType>
+
+    <IslandTargetType>BareMetal-ARM</IslandTargetType>
+    <TargetPrefix></TargetPrefix>
+    <TargetExt>.fx</TargetExt>
+    <TargetFileName Condition=" '$(TargetFileName)' == ''">$(TargetPrefix)$(AssemblyName)$(TargetExt)</TargetFileName>
+    <TargetPath Condition=" '$(TargetPath)' == '' ">$(OutputPath)\$(IslandTargetType)\$(IslandTargetArchitecture)\$(TargetFileName)</TargetPath>
+    <IslandTargetFileName>$(TargetPrefix)$(AssemblyName)$(IslandTargetExt)</IslandTargetFileName>
+    <OutDir>$(OutputPath)\$(IslandTargetType)\$(IslandTargetArchitecture)</OutDir>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.targets" />
+  <PropertyGroup>
+    <IntermediateOutputPath>$(IntermediateOutputPath)\$(IslandTargetType)\</IntermediateOutputPath>
+    <OutputLibraryName Condition="'$(OutputType)'=='library' or '$(OutputType)'=='staticlibrary' or '$(OutputType)'=='object'">$(IslandTargetFileName)</OutputLibraryName>
+    <AvailablePlatforms>armv7</AvailablePlatforms>
+    <CompilerFlags>--reloc=pic --thinlto</CompilerFlags>
+  </PropertyGroup>
+  <ItemGroup>
+    <IslandBinFiles Include="$(IntermediateOutputPath)\$(IslandTargetFileName)"/>
+    <IslandOutputBinFiles Include="$(OutDir)\$(IslandTargetFileName)"/>
+  </ItemGroup>
+  <Target Name="IslandLink" DependsOnTargets="$(IslandLinkDependsOn)" Condition="'@(GeneratedOutput)'!='' and '$(OutputType)'!='object' and '$(OutputType)'!='staticlibrary'">
+    <ResolveIslandPath Parameter="LLD" FailIfMissing="False">
+      <Output TaskParameter="Path" PropertyName="IslandLinkerExecutable" />
+    </ResolveIslandPath>
+    <ResolveIslandPath Parameter="DefaultLLD" Condition="$(IslandLinkerExecutable) == ''">
+      <Output TaskParameter="Path" PropertyName="IslandLinkerExecutable" />
+    </ResolveIslandPath>
+    <SplitString Input="$(IslandLibraries)">
+      <Output TaskParameter="Items" ItemName="IslandLibrariesSplit" />
+    </SplitString>
+    <ItemGroup>
+      <IslandLinkerFilesIn Include="@(GeneratedOutput->'&quot;%(fullpath)&quot; ')"/>
+      <IslandLinkerFilesIn Include="@(IslandLibrariesSplit->'&quot;%(FullPath)&quot;', ' ')" />
+      <IslandLinkerFiles Include="@(IslandLinkerFilesIn)" Condition="'$(OS)' == 'Unix'" />
+      <IslandLinkerFiles Include="@(IslandLinkerFilesIn->Replace('\','/'))" Condition="'$(OS)' != 'Unix'" />
+
+      <IslandLinkerCommand Remove="@(IslandLinkerCommand)" />
+      <IslandLinkerCommand Condition="'$(Optimize)'!='True'" Include="-O0 --lto-O0" />
+      <IslandLinkerCommand Condition="'$(IslandTargetArchitecture)'=='arm'" Include="--eh-frame-hdr --dynamic-linker &quot;/lib/ld-linux-armhf.so.3&quot; "/>
+      <IslandLinkerCommand Condition="'$(IslandTargetArchitecture)'=='armv6'" Include="--eh-frame-hdr --dynamic-linker &quot;/lib/ld-linux-armhf.so.3&quot; "/>
+      <IslandLinkerCommand Condition="'$(IslandTargetArchitecture)'=='armv7'" Include="--eh-frame-hdr --dynamic-linker &quot;/lib/ld-linux-armhf.so.3&quot; "/>
+      <IslandLinkerCommand Include="&quot;-L$(IntermediateOutputPath.Replace('\','/'))/.&quot;"/>
+      <IslandLinkerCommand Include="&quot;-o$(IntermediateOutputPath.Replace('\','/'))/$(IslandTargetFileName.Replace('\','/'))&quot;"/>
+      <IslandLinkerCommand Include="@(IslandReferencePaths->'-L &quot;%(FullPath)&quot; ')"/>
+      <IslandLinkerCommand Include="@(IslandLinkerFiles)"/>
+      <IslandLinkerCommand Include="$(IslandReferencesLinkerOptions)" />
+      <IslandLinkerCommand Condition="'$(OutputType)'=='library'" Include="-shared" />
+    </ItemGroup>
+    <PropertyGroup>
+      <IslandLinkerTemp>$(IntermediateOutputPath)\linkercmd</IslandLinkerTemp>
+    </PropertyGroup>
+    <Delete Files="$(OutDir)\$(IslandTargetFileName)" Condition="Exists('$(OutDir)\$(IslandTargetFileName)')" />
+    <WriteLinesToFile
+          File="$(IslandLinkerTemp)"
+          Lines="@(IslandLinkerCommand)"
+          Overwrite="true"/>
+
+
+    <ExecuteLinker Executable="$(IslandLinkerExecutable)" Arguments="-flavor gnu &quot;@$(IslandLinkerTemp)&quot;" />
+  </Target>
+</Project>

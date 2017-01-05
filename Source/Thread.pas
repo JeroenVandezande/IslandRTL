@@ -1,5 +1,5 @@
 ﻿namespace RemObjects.Elements.System;
-
+{$IFNDEF BAREMETAL}
 interface
 
 type
@@ -479,5 +479,5 @@ begin
   rtl.pthread_mutex_destroy(@fMutex);
 end;
 {$ENDIF}
-
+{$ENDIF}
 end.

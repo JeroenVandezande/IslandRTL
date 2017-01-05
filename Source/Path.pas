@@ -154,6 +154,9 @@ begin
     else
       exit String.FromPChar(@buf1[0],len) as not nullable String;
   end;
+  {$ELSEIF BAREMETAL}
+  //TODO
+  exit RelativePath;
   {$ELSEIF POSIX}
   {$HINT POSIX: implement Path.GetFullPath}
   exit RelativePath;
