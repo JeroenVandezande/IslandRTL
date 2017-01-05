@@ -16,6 +16,8 @@ type
       var str : rtl.__struct_utsname;
       if rtl.uname(@str) = 0 then exit String.FromPAnsiChars(str.sysname);
       CheckForLastError;
+      {$ELSEIF BareMetal-ARM}
+      exit 'BareMetal-ARM';
       {$ELSE}{$ERROR}{$ENDIF}
     end;
 
@@ -32,10 +34,12 @@ type
       var str : rtl.__struct_utsname;
       if rtl.uname(@str) = 0 then exit String.FromPAnsiChars(str.version);
       CheckForLastError;
+      {$ELSEIF NOGC}
+      exit 'na';
       {$ELSE}{$ERROR}{$ENDIF}
     end;
   public
-    property NewLine: String read {$IFDEF WINDOWS}#13#10{$ELSEIF POSIX}#10{$ELSE}{$ERROR}{$ENDIF};
+    property NewLine: String read {$IFDEF WINDOWS}#13#10{$ELSEIF POSIX}#10{$ELSEIF NOGC}#13#10{$ELSE}{$ERROR}{$ENDIF};
     property UserName: String read GetUserName;
     property OSName: String read GetOSName;
     property OSVersion: String read GetOSVersion;

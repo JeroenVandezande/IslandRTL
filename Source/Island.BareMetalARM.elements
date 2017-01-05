@@ -10,14 +10,15 @@
     <AllowLegacyCreate>False</AllowLegacyCreate>
     <Configuration Condition="'$(Configuration)' == ''">Debug-x86_64</Configuration>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <Name>Island (Linux)</Name>
-    <ProjectGuid>{a2c670b6-db38-401a-ae00-71515c87ccc5}</ProjectGuid>
+    <Name>Island (BareMetal)</Name>
+    <ProjectGuid>{3bd02559-a9c9-4ead-8153-0ce7f9b9efe1}</ProjectGuid>
     <Mode>Island</Mode>
     <WarnOnCaseMismatch>True</WarnOnCaseMismatch>
+    <DefineConstants>NOGC</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug-x86_64' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OutputPath>Bin\Debug</OutputPath>
-    <DefineConstants>Linux</DefineConstants>
+    <DefineConstants>NOGC</DefineConstants>
     <EnableAsserts>True</EnableAsserts>
     <Optimize>False</Optimize>
     <GeneratePDB>True</GeneratePDB>
@@ -29,11 +30,11 @@
     <XmlDoc>False</XmlDoc>
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
-    <Architecture>x86_64</Architecture>
+    <Architecture>armv7</Architecture>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release-x86_64' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <OutputPath>Bin\Release</OutputPath>
-    <DefineConstants>Linux</DefineConstants>
+    <DefineConstants>NOGC</DefineConstants>
     <EnableAsserts>False</EnableAsserts>
     <GeneratePDB>False</GeneratePDB>
     <GenerateMDB>False</GenerateMDB>
@@ -44,52 +45,21 @@
     <XmlDoc>False</XmlDoc>
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
-    <Architecture>x86_64</Architecture>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug-armv6' ">
-    <OutputPath>Bin\Debug</OutputPath>
-    <DefineConstants>Linux</DefineConstants>
-    <EnableAsserts>True</EnableAsserts>
-    <Optimize>False</Optimize>
-    <GeneratePDB>True</GeneratePDB>
-    <GenerateMDB>False</GenerateMDB>
-    <CaptureConsoleOutput>False</CaptureConsoleOutput>
-    <StartMode>Project</StartMode>
-    <CpuType>x86</CpuType>
-    <RuntimeVersion>v25</RuntimeVersion>
-    <XmlDoc>False</XmlDoc>
-    <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
-    <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
-    <Architecture>armv6</Architecture>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release-armv6' ">
-    <OutputPath>Bin\Release</OutputPath>
-    <DefineConstants>Linux</DefineConstants>
-    <EnableAsserts>False</EnableAsserts>
-    <GeneratePDB>False</GeneratePDB>
-    <GenerateMDB>False</GenerateMDB>
-    <CaptureConsoleOutput>False</CaptureConsoleOutput>
-    <StartMode>Project</StartMode>
-    <CpuType>x86</CpuType>
-    <RuntimeVersion>v25</RuntimeVersion>
-    <XmlDoc>False</XmlDoc>
-    <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
-    <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
-    <Architecture>armv6</Architecture>
+    <Architecture>armv7</Architecture>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ManagedThreadPool.pas" />
-    <Compile Include="PosixHelpers.pas" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="gc.fx" />
-    <Reference Include="rtl.fx" />
+    <Reference Include="rtl.fx">
+      <HintPath>D:\OneDrive\GNU Tools ARM Embedded\6.2 2016q4\arm-none-eabi\include\rtl.fx</HintPath>
+    </Reference>
   </ItemGroup>
   <PropertyGroup />
-  <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.Linux.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.BareMetal.targets" />
   <Import Project="Island.Shared.projitems" Label="Shared" />
   <PropertyGroup>
     <PreBuildEvent />
