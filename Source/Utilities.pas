@@ -100,8 +100,7 @@ type
 
     class method SuppressFinalize(o: Object);
     begin
-      {$IFDEF NOGC}
-      {$ELSE}
+      {$IFNDEF NOGC}
       if o <> nil then
         GC.GC_register_finalizer_no_order(InternalCalls.Cast(o), nil, nil, nil, nil);
       {$ENDIF}
@@ -109,8 +108,7 @@ type
 
     class method Collect(c: Integer);
     begin
-      {$IFDEF NOGC}
-      {$ELSE}
+      {$IFNDEF NOGC}
       for i: Integer := 0 to c -1 do
         GC.GC_gcollect(); 
       {$ENDIF}

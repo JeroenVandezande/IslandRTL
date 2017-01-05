@@ -55,8 +55,9 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="rtl.fx">
-      <HintPath>D:\OneDrive\GNU Tools ARM Embedded\6.2 2016q4\arm-none-eabi\include\rtl.fx</HintPath>
+      <HintPath>BareMetal-ARM\rtl.fx</HintPath>
     </Reference>
+    <Reference Include="rtl.fx" />
   </ItemGroup>
   <PropertyGroup />
   <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.BareMetal.targets" />
