@@ -20,7 +20,10 @@ type
     [SymbolName('_elements_posix_exception_handler'), CallingConvention(CallingConvention.Stdcall)]
     method ExceptionHandler(); empty;
     [SymbolName('ElementsRaiseException')]
-    method RaiseException(aRaiseAddress: ^Void; aRaiseFrame: ^Void; aRaiseObject: Object); empty;
+    method RaiseException(aRaiseAddress: ^Void; aRaiseFrame: ^Void; aRaiseObject: Object);
+    begin
+      InternalCalls.VoidAsm("BKPT", "", false, false);
+    end;
 
     const ElementsExceptionCode: UInt64 = $E042881952454d4f;
 

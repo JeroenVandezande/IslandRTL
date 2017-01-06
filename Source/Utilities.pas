@@ -114,13 +114,17 @@ type
       {$ENDIF}
     end;
 
-    {$IFNDEF BAREMETAL}
+   
     class method SpinLockEnter(var x: Integer);
     begin
      loop begin
        if InternalCalls.Exchange(var x, 1) = 0 then exit;
+       {$IFDEF BAREMETAL}
+       rtl.usleep(10000); // 10mis
+       {$ELSE}
        if not Thread.Yield() then
          Thread.Sleep(1);
+       {$ENDIF}
      end;
     end;
     
@@ -131,6 +135,10 @@ type
 
     class method SpinLockClassEnter(var x: NativeInt): Boolean;
     begin
+      {$IFDEF BAREMETAL}
+      var lValue := InternalCalls.Exchange(var x, NativeInt(1));
+      exit lValue = NativeInt(0);
+      {$ELSE}
       var cid := Thread.CurrentThreadID;
 
       var lValue := InternalCalls.CompareExchange(var x, cid, NativeInt(0)); // returns old
@@ -147,13 +155,14 @@ type
         lValue := InternalCalls.VolatileRead(var x); // returns old
       until lValue = NativeInt(Int64(-1));
       exit false;
+      {$ENDIF}
     end;
 
     class method SpinLockClassExit(var x: NativeInt);
     begin
       InternalCalls.VolatileWrite(var x, NativeInt(Int64(-1)));
     end;
-    {$ENDIF}
+   
     method CalcHash(const buf: ^Void; len: Integer): Integer;
     begin
       var pb:= ^Byte(buf);
