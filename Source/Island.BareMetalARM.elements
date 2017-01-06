@@ -51,6 +51,9 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BareMetalPosixHelpers.pas">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ManagedThreadPool.pas" />
   </ItemGroup>
   <ItemGroup>
