@@ -5,13 +5,12 @@ interface
 type
   LCMapStringTransformMode = assembly enum (None, Upper, Lower);
 
-  String = public class(Object)
+  String = public class(Object,IEnumerable<Char>, IEnumerable)
   assembly {$HIDE H6}
     fLength: Integer;
     fFirstChar: Char;{$SHOW H6}
     method get_Item(i: Integer): Char;
     constructor; empty; // not callable
-    method IndexOf(Value: String; aStartFromIndex: Integer): Int32;
     {$IFDEF WINDOWS}
     method doLCMapString(aInvariant: Boolean := false; aMode:LCMapStringTransformMode := LCMapStringTransformMode.None):String;
     {$ENDIF}
@@ -19,30 +18,35 @@ type
     method MakeInvariantString: String;
     class method RaiseError(aMessage: String);
     method CheckIndex(aIndex: Integer);
+    method GetNonGenericEnumerator: IEnumerator; implements IEnumerable.GetEnumerator;
+    method GetEnumerator: IEnumerator<Char>;iterator;
   assembly
-    {$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
+     {$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
     class var fUTF16ToCurrent, fCurrentToUtf16: rtl.iconv_t;
     {$ENDIF}
-    class method AllocString(aLen: Integer): String;
+     class method AllocString(aLen: Integer): String;
   public
-    class constructor;
-
     //constructor(aArray: array of Char);
     //constructor(c: ^Char; aCharCount: Integer): String;
     class method FromCharArray(aArray: array of Char): String;
     class method FromPChar(c: ^Char; aCharCount: Integer): String;
     class method FromPChar(c: ^Char): String;
-    class method FromPAnsiChars(c: ^AnsiChar; aCharCount: Integer): String;
-    class method FromPAnsiChars(c: ^AnsiChar): String;
+    class method FromPAnsiChars(c: ^AnsiChar; aCharCount: Integer): nullable String;
+    class method FromPAnsiChars(c: ^AnsiChar): nullable String;
     class method FromRepeatedChar(c: Char; aCharCount: Integer): String;
     class method FromChar(c: Char): String;
     class method IsNullOrEmpty(value: String):Boolean;
     method ToAnsiChars(aNullTerminate: Boolean := false): array of AnsiChar;
-    method ToCharArray(aNullTerminate: Boolean := false): array of Char;
+    method ToCharArray(aNullTerminate: Boolean := false): array of Char; inline;
+    method ToCharArray(StartIndex: Integer; aLength: Integer; aNullTerminate: Boolean := false): array of Char;
     property Length: Integer read fLength;
     property Item[i: Integer]: Char read get_Item; default;
     property FirstChar: ^Char read @fFirstChar;
 
+    method CopyTo(SourceIndex: Integer; destination: array of Char; DestinationIndex: Integer; Count: Integer);
+    method Insert(aIndex: Integer; aNewValue: String): not nullable String;
+    method &Remove(StartIndex: Integer): String; inline;
+    method &Remove(StartIndex: Integer; Count: Integer): String;
     method CompareTo(Value: String): Integer;
     method CompareToIgnoreCase(Value: String): Integer;
     method &Equals(Value: String): Boolean;
@@ -54,14 +58,24 @@ type
     class method &Join(Separator: String; Value: array of String; StartIndex: Integer; Count: Integer): String;
     class method &Join(Separator: String; Value: array of Object): String;
     method Contains(Value: String): Boolean;
-    method IndexOf(Value: String): Int32;
-    method LastIndexOf(Value: String): Int32;
-    method Substring(StartIndex: Int32): not nullable String;
-    method Substring(StartIndex: Int32; aLength: Int32): not nullable String;
+    method IndexOf(Value: String): Integer;
+    method IndexOf(Value: String; aStartFromIndex: Integer): Integer;
+    method IndexOfAny(anyOf: array of Char): Integer;
+    method LastIndexOf(Value: String): Integer;
+    method LastIndexOf(Value: String; aStartFromIndex: Integer): Integer;
+    method LastIndexOfAny(anyOf: array of Char): Integer;
+    method Substring(StartIndex: Integer): not nullable String;
+    method Substring(StartIndex: Integer; aLength: Integer): not nullable String;
     method Split(Separator: String): array of String;
     method Replace(OldValue, NewValue: String): not nullable String;
+    method PadStart(TotalWidth: Integer): String; inline;
+    method PadStart(TotalWidth: Integer; PaddingChar: Char): String;
+    method PadEnd(TotalWidth: Integer): String; inline;
+    method PadEnd(TotalWidth: Integer; PaddingChar: Char): String;
     method ToLower(aInvariant: Boolean := false): String;
     method ToUpper(aInvariant: Boolean := false): String;
+    method ToLowerInvariant: String;inline;
+    method ToUpperInvariant: String;inline;
     method Trim: String;
     method Trim(aChars: array of Char): String;
     method TrimStart: String;
@@ -106,6 +120,17 @@ method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.
 
 implementation
 
+method String.GetNonGenericEnumerator: IEnumerator;
+begin
+  exit self.GetEnumerator;
+end;
+
+method String.GetEnumerator: IEnumerator<Char>;
+begin
+  for i: Integer := 0 to fLength -1 do
+    yield (@fFirstChar)[i];
+end;
+
 class method String.FromPChar(c: ^Char; aCharCount: Integer): String;
 begin
   result := AllocString(aCharCount);
@@ -141,8 +166,9 @@ begin
 end;
 {$ENDIF}
 
-class method String.FromPAnsiChars(c: ^AnsiChar; aCharCount: Integer): String;
+class method String.FromPAnsiChars(c: ^AnsiChar; aCharCount: Integer): nullable String;
 begin
+  if not assigned(c) then exit nil;
   {$IFDEF WINDOWS}
   var len := rtl.MultiByteToWideChar(rtl.CP_ACP, 0, c, aCharCount, nil, 0);
   result := AllocString(len);
@@ -153,7 +179,7 @@ begin
   exit TextConvert.UTF8ToString(b);
   {$ELSE}
   var lNewData: ^AnsiChar := nil;
-  var lNewLen: rtl.size_t := iconv_helper(String.fCurrentToUtf16, c, aCharCount, aCharCount * 2 + 5, out lNewData);
+  var lNewLen: rtl.size_t := iconv_helper(TextConvert.fCurrentToUtf16, c, aCharCount, aCharCount * 2 + 5, out lNewData);
   // method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.size_t;outputdata: ^^AnsiChar; outputdatalength: ^rtl.size_t; suggested_output_length: Integer): Integer;
   if lNewLen <> -1  then begin
     result := String.FromPChar(^Char(lNewData), lNewLen / 2);
@@ -174,7 +200,7 @@ begin
   {$IFDEF WINDOWS}ExternalCalls.{$ELSE}rtl.{$ENDIF}memcpy(@result[0], @b[0], b.Length);
   {$ELSE}
   var lNewData: ^AnsiChar := nil;
-  var lNewLen: rtl.size_t := iconv_helper(String.fUTF16ToCurrent, ^AnsiChar(@fFirstChar), Length * 2, Length + 5, out lNewData);
+  var lNewLen: rtl.size_t := iconv_helper(TextConvert.fUTF16ToCurrent, ^AnsiChar(@fFirstChar), Length * 2, Length + 5, out lNewData);
 
   if lNewLen <> -1  then begin
     result := new AnsiChar[lNewLen+ if aNullTerminate then 1 else 0];
@@ -251,80 +277,97 @@ end;
 method String.Trim: String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var lresult := new array of Char(self.Length);
-  var pos:=0;
-  for i: Integer := 0 to self.Length-1 do
-    if self.Item[i] > ' ' then begin
-      lresult[pos] := self.Item[i];
-      inc(pos);
-    end;
-  exit String.FromPChar(@lresult,pos);
+  var lStart := 0;
+  var len := self.Length;
+  var lEnd := len-1;
+
+  while (lStart ≤ lEnd) and Char.IsWhiteSpace(self[lStart]) do inc(lStart);
+  if lStart > lEnd then exit '';
+
+  while (lEnd ≥ lStart) and Char.IsWhiteSpace(self[lEnd]) do dec(lEnd);
+  if lEnd < lStart then exit '';
+
+  result := Substring(lStart, lEnd-lStart+1);
 end;
 
 method String.Trim(aChars: array of Char): String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var lresult := '';
-  for i: Integer := 0 to self.Length-1 do
-    if not TestChar(self.Item[i], aChars) then
-      lresult := lresult + self.Item[i];
-  exit lresult;
+  var lStart := 0;
+  var len := self.Length;
+  var lEnd := len-1;
+
+  while (lStart ≤ lEnd) and not TestChar(self[lStart], aChars) do inc(lStart);
+  if lStart > lEnd then exit '';
+
+  while (lEnd ≥ lStart) and not TestChar(self[lEnd], aChars) do dec(lEnd);
+  if lEnd < lStart then exit '';
+
+  result := Substring(lStart, lEnd-lStart+1);
 end;
 
 method String.TrimStart: String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var i: Integer := 0;
-  while (i < self.Length) and (self.Item[i] <= ' ') do i:=i+1;
-  if i < self.Length then
-    exit self.Substring(i)
-  else
-    exit '';
+  var lStart := 0;
+  var lEnd := self.Length-1;
+
+  while (lStart ≤ lEnd) and Char.IsWhiteSpace(self[lStart]) do inc(lStart);
+  if lStart > lEnd then exit '';
+
+  result := Substring(lStart, lEnd-lStart+1);
 end;
 
 method String.TrimStart(aChars: array of Char): String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var i: Integer := 0;
-  while (i < self.Length) and TestChar(self.Item[i], aChars) do i:=i+1;
-  if i < self.Length then
-    exit self.Substring(i)
-  else
-    exit '';
+  var lStart := 0;
+  var lEnd := self.Length-1;
+
+  while (lStart ≤ lEnd) and not TestChar(self[lStart], aChars) do inc(lStart);
+  if lStart > lEnd then exit '';
+
+  result := Substring(lStart, lEnd-lStart+1);
 end;
 
 method String.TrimEnd: String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var i: Integer := self.Length-1;
-  while (i >= 0) and (self.Item[i] <=' ') do i:=i-1;
-  if i < 0 then
-    exit ''
-  else
-    exit self.Substring(0,i+1);
+  var len := self.Length;
+  var lEnd := len-1;
+
+  while (lEnd ≥ 0) and Char.IsWhiteSpace(self[lEnd]) do dec(lEnd);
+  if lEnd < 0 then exit '';
+
+  result := Substring(0, lEnd+1);
 end;
 
 method String.TrimEnd(aChars: array of Char): String;
 begin
   if String.IsNullOrEmpty(self) then exit self;
-  var i: Integer := self.Length-1;
-  while (i >= 0) and TestChar(self.Item[i], aChars) do i:=i-1;
-  if i < 0 then
-    exit ''
-  else
-    exit self.Substring(0,i+1);
+  var len := self.Length;
+  var lEnd := len-1;
+
+  while (lEnd ≥ 0) and not TestChar(self[lEnd], aChars) do dec(lEnd);
+  if lEnd < 0 then exit '';
+
+  result := Substring(0, lEnd+1);
 end;
 
-method String.Substring(StartIndex: Int32): not nullable String;
+method String.Substring(StartIndex: Integer): not nullable String;
 begin
+  if StartIndex = 0 then exit self;
   CheckIndex(StartIndex);
   exit Substring(StartIndex, self.Length - StartIndex)
 end;
 
-method String.Substring(StartIndex: Int32; aLength: Int32): not nullable String;
+method String.Substring(StartIndex: Integer; aLength: Integer): not nullable String;
 begin
   CheckIndex(StartIndex);
+  if aLength > 1 then
+    CheckIndex(StartIndex+aLength-1);
   if aLength = 0 then exit '';
+  if (StartIndex = 0) and (aLength = self.Length) then exit self;
   {$HIDE W46}
   exit String.FromPChar(@(@fFirstChar)[StartIndex], aLength);
   {$SHOW W46}
@@ -370,7 +413,7 @@ begin
   exit self.IndexOf(Value) > -1;
 end;
 
-method String.IndexOf(Value: String; aStartFromIndex: Integer): Int32;
+method String.IndexOf(Value: String; aStartFromIndex: Integer): Integer;
 begin
   var Value_Length := Value.Length;
   if Value_Length > Self.Length then exit -1;
@@ -388,13 +431,18 @@ begin
   exit -1;
 end;
 
-method String.LastIndexOf(Value: String): Int32;
+method String.LastIndexOf(Value: String): Integer;
+begin
+  result := LastIndexOf(Value, self.Length);
+end;
+
+method String.LastIndexOf(Value: String; aStartFromIndex: Integer): Integer;
 begin
   var Value_Length := Value.Length;
   if Value_Length > Self.Length then exit -1;
   if Value_Length = 0 then exit -1;
 
-  for i: Integer := Self.Length-Value_Length downto 0 do begin
+  for i: Integer := aStartFromIndex-Value_Length downto 0 do begin
     var lfound:= true;
     for j: Integer := 0 to Value_Length-1 do begin
       lfound := lfound and (self.Item[i+j] = Value.Item[j]);
@@ -406,7 +454,7 @@ begin
   exit -1;
 end;
 
-method String.IndexOf(Value: String): Int32;
+method String.IndexOf(Value: String): Integer;
 begin
   exit self.IndexOf(Value,0);
 end;
@@ -519,6 +567,33 @@ begin
   exit s1.IndexOf(s2, pos) = pos;
 end;
 
+method String.CopyTo(SourceIndex: Integer; destination: array of Char; DestinationIndex: Integer; Count: Integer);
+begin
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@destination[DestinationIndex], (@fFirstChar) + SourceIndex, Count * 2);
+end;
+
+method String.Insert(aIndex: Integer; aNewValue: String): not nullable String;
+begin
+  {$HIDE W46}
+  result := AllocString(self.Length + aNewValue.Length);
+  {$SHOW W46}
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @fFirstChar, aIndex * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + aIndex, @aNewValue.fFirstChar, aNewValue.Length * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + aIndex + aNewValue.Length, (@fFirstChar) + aIndex, (self.Length - aIndex) * 2);
+end;
+
+method String.&Remove(StartIndex: Integer): String;
+begin
+  result := &Remove(StartIndex, Length - StartIndex);
+end;
+
+method String.&Remove(StartIndex: Integer; Count: Integer): String;
+begin
+  result := AllocString(self.Length - Count);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, @fFirstChar, StartIndex * 2);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy((@result.fFirstChar) + StartIndex, (@fFirstChar) + StartIndex + Count, (self.Length - (StartIndex + Count)) * 2);
+end;
+
 method String.CompareTo(Value: String): Integer;
 begin
   exit String.Compare(self,Value);
@@ -571,7 +646,9 @@ begin
   until i = -1;
 
   if old_i < self_len then
-    result[len] := self.Substring(old_i, self_len -old_i);
+    result[len] := self.Substring(old_i, self_len-old_i)
+  else if old_i = self_len then
+    result[len] := '';
 end;
 
 {$IFDEF WINDOWS}
@@ -599,15 +676,56 @@ begin
 end;
 {$ENDIF}
 
+method String.PadStart(TotalWidth: Integer): String;
+begin
+  exit PadStart(TotalWidth, ' ');
+end;
+
+method String.PadStart(TotalWidth: Integer; PaddingChar: Char): String;
+begin
+  if TotalWidth < 0 then raise new ArgumentOutOfRangeException('TotalWidth is less than zero.');
+  var lTotal := TotalWidth - self.Length;
+  if lTotal < 1 then
+    exit self
+  else
+    exit FromRepeatedChar(PaddingChar, lTotal) + self;
+end;
+
+method String.PadEnd(TotalWidth: Integer): String;
+begin
+  exit PadEnd(TotalWidth, ' ');
+end;
+
+method String.PadEnd(TotalWidth: Integer; PaddingChar: Char): String;
+begin
+  if TotalWidth < 0 then raise new ArgumentOutOfRangeException('TotalWidth is less than zero.');
+  var lTotal := TotalWidth - self.Length;
+  if lTotal < 1 then
+    result := self
+  else
+    result := self + FromRepeatedChar(PaddingChar, lTotal);
+end;
+
 method String.ToLower(aInvariant: Boolean := false): String;
 begin
   {$IFDEF WINDOWS}
   exit doLCMapString(aInvariant, LCMapStringTransformMode.Lower);
-  {$ELSEIF BAREMETAL}
-  //TODO
-  {$ELSEIF POSIX} raise new NotImplementedException;
-  {$ELSE}{$ERROR}
-  {$ENDIF}
+{$ELSEIF BAREMETAL}
+  //TODO{$ELSEIF POSIX}
+  {$HINT Non-Invariant ToLower is not implemented for Linux, yet}
+  var b := TextConvert.StringToUTF32LE(self);
+  for i: Int32 := 0 to RemObjects.Elements.System.length(b)-1 step 4 do begin
+    var ch := b[i] + (Int32(b[i+1]) shl 8) + (Int32(b[i+2]) shl 16) + (Int32(b[i+3]) shl 24);
+    var u := rtl.towlower(ch);
+    b[i] := u and $ff;
+    b[i+1] := (u shr 8) and $ff;
+    b[i+2] := (u shr 16) and $ff;
+    b[i+3] := (u shr 25) and $ff;
+  end;
+  result := TextConvert.UTF32LEToString(b);
+  {$ELSE}
+  {$ERROR Not Implemented}
+{$ENDIF}
 end;
 
 method String.ToUpper(aInvariant: Boolean := false): String;
@@ -617,8 +735,19 @@ begin
   {$ELSEIF BAREMETAL}
   //TODO
   {$ELSEIF POSIX} raise new NotImplementedException;
-  {$ELSE}{$ERROR}
-  {$ENDIF}
+  {$HINT Non-Invariant ToUpper is not implemented for Linux, yet}
+  var b := TextConvert.StringToUTF32LE(self);
+  for i: Int32 := 0 to RemObjects.Elements.System.length(b)-1 step 4 do begin
+    var ch := b[i] + (Int32(b[i+1]) shl 8) + (Int32(b[i+2]) shl 16) + (Int32(b[i+3]) shl 24);
+    var u := rtl.towupper(ch);
+    b[i] := u and $ff;
+    b[i+1] := (u shr 8) and $ff;
+    b[i+2] := (u shr 16) and $ff;
+    b[i+3] := (u shr 25) and $ff;
+  end;
+  result := TextConvert.UTF32LEToString(b);
+  {$ELSE}
+  {$ERROR Not Implemented}  {$ENDIF}
 end;
 
 method String.MakeInvariantString: String;
@@ -629,7 +758,8 @@ begin
   //TODO
   {$ELSEIF POSIX}
   exit self; {$WARNING POSIX: implement MakeInvariantString}
-  {$ELSE}{$ERROR}
+  {$ELSE}
+  {$ERROR Not Implemented}
   {$ENDIF}
 end;
 
@@ -640,9 +770,14 @@ end;
 
 method String.ToCharArray(aNullTerminate: Boolean := false): array of Char;
 begin
-  var r := new array of Char(fLength + if aNullTerminate then 1 else 0);
-  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@r[0], @fFirstChar, fLength * 2);
-  if aNullTerminate then r[fLength] := #0;
+  result := ToCharArray(0, fLength, aNullTerminate);
+end;
+
+method String.ToCharArray(StartIndex: Integer; aLength: Integer; aNullTerminate: Boolean := false): array of Char;
+begin
+  var r := new array of Char(aLength + if aNullTerminate then 1 else 0);
+  {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX}rtl.{$ELSE}{$ERROR Not Implemented}{$ENDIF}memcpy(@r[0], (@fFirstChar) + StartIndex, aLength * 2);
+  if aNullTerminate then r[aLength] := #0;
   exit r;
 end;
 
@@ -653,12 +788,12 @@ end;
 
 method String.CheckIndex(aIndex: Integer);
 begin
-  if (aIndex < 0) or (aIndex >= fLength) then raise new ArgumentOutOfRangeException('Index was out of range.');
+  if (aIndex < 0) or (aIndex >= fLength) then raise Utilities.CreateIndexOutOfRangeException(aIndex, fLength-1);
 end;
 
 class method String.FromPChar(c: ^Char): String;
 begin
-  exit FromPChar(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}wcslen(c));
+  exit FromPChar(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR Not Implemented}{$ENDIF}wcslen(c));
 end;
 
 class method String.FromChar(c: Char): String;
@@ -668,23 +803,16 @@ end;
 
 class method String.FromRepeatedChar(c: Char; aCharCount: Integer): String;
 begin
+  if aCharCount = 0 then exit '';
   result := AllocString(aCharCount);
   for i: Integer := 0 to aCharCount-1 do
     (@result.fFirstChar)[i] := c;
 end;
 
-class method String.FromPAnsiChars(c: ^AnsiChar): String;
+class method String.FromPAnsiChars(c: ^AnsiChar): nullable String;
 begin
-  exit FromPAnsiChars(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}strlen(c));
-end;
-
-class constructor String;
-begin
-  {$IFDEF POSIX and not ANDROID}
-  rtl.setlocale(rtl.LC_ALL, "");
-  fUTF16ToCurrent := rtl.iconv_open("", "UTF-16LE");
-  fCurrentToUtf16 := rtl.iconv_open("UTF-16LE", "");
-  {$ENDIF}
+  if not assigned(c) then exit nil;
+  exit FromPAnsiChars(c, {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR Not Implemented}{$ENDIF}strlen(c));
 end;
 
 class method String.Format(aFormat: String; params aArguments: array of Object): String;
@@ -896,6 +1024,34 @@ begin
   exit str.ToString;
 end;
 
+method String.IndexOfAny(anyOf: array of Char): Integer;
+begin
+  if anyOf = nil then raise new ArgumentNullException('anyOf is null.');
+  for i:Integer := 0 to fLength-1 do
+    for j:Integer := 0 to anyOf.Length-1 do
+      if (@fFirstChar)[i] = anyOf[j] then exit i;
+  exit -1;
+end;
+
+method String.LastIndexOfAny(anyOf: array of Char): Integer;
+begin
+  if anyOf = nil then raise new ArgumentNullException('anyOf is null.');
+  for i:Integer := fLength-1 downto 0 do
+    for j:Integer := 0 to anyOf.Length-1 do
+      if (@fFirstChar)[i] = anyOf[j] then exit i;
+  exit -1;
+end;
+
+method String.ToLowerInvariant: String;
+begin
+  exit ToLower(True);
+end;
+
+method String.ToUpperInvariant: String;
+begin
+  exit ToUpper(True);
+end;
+
 { String_Constructors }
 
 constructor String_Constructors(aArray: array of Char);
@@ -925,12 +1081,12 @@ end;
 
 constructor String_Constructors(c: ^AnsiChar; aCharCount: Integer);
 begin
-  result := String.FromPAnsiChars(c, aCharCount);
+  result := coalesce(String.FromPAnsiChars(c, aCharCount), "");
 end;
 
 constructor String_Constructors(c: ^AnsiChar);
 begin
-  result := String.FromPAnsiChars(c);
+  result := coalesce(String.FromPAnsiChars(c), "");
 end;
 
 end.

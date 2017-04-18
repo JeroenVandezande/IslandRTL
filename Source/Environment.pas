@@ -2,7 +2,7 @@
 
 type
   Environment = public static class
-  private    
+  private
     class method GetUserName: String;
     begin
       exit GetEnvironmentVariable('USERNAME');
@@ -26,10 +26,10 @@ type
       {$IFDEF WINDOWS}
       // from https://msdn.microsoft.com/en-us/library/ms724451%28v=VS.85%29.aspx
       // GetVersionEx may be altered or unavailable for releases after Windows 8.1. Instead, use the Version Helper functions
-      // With the release of Windows 8.1, the behavior of the GetVersionEx API has changed in the value it will return for 
-      // the operating system version. The value returned by the GetVersionEx function now depends on how the application 
+      // With the release of Windows 8.1, the behavior of the GetVersionEx API has changed in the value it will return for
+      // the operating system version. The value returned by the GetVersionEx function now depends on how the application
       // is manifested.
-      exit Registry.GetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion','CurrentVersion','') as String;      
+      exit Registry.GetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion','CurrentVersion','') as String;
       {$ELSEIF POSIX}
       var str : rtl.__struct_utsname;
       if rtl.uname(@str) = 0 then exit String.FromPAnsiChars(str.version);
@@ -46,7 +46,7 @@ type
     property ApplicationContext: Object read write;
 
     method GetEnvironmentVariable(Name: String): String;
-    begin     
+    begin
       {$IFDEF WINDOWS}
       var buf:= new array of Char(32768);
       var len := rtl.GetEnvironmentVariableW(Name.ToLPCWSTR,rtl.LPWSTR(@buf[0]),32767);
@@ -63,7 +63,7 @@ type
     end;
 
     method CurrentDirectory: String;
-    begin      
+    begin
       {$IFDEF WINDOWS}
       var len := rtl.MAX_PATH;
       var buf := new array of Char(len);
@@ -84,13 +84,13 @@ type
       loop begin
         var buf := new AnsiChar[len];
         if rtl.getcwd(@buf[0], len) = nil then begin
-          if rtl.errno = rtl.ERANGE then 
+          if rtl.errno = rtl.ERANGE then
             len := len  *2
-          else 
+          else
             exit nil;
         end else
           exit new String(@buf[0]);
-        
+
       end;
       {$ELSEIF BAREMETAL}
       //TODO
@@ -113,7 +113,7 @@ type
       fn := String.FromPAnsiChars(rtl.getpwuid(rtl.getuid())^.pw_dir);
       {$ELSE}{$ERROR}{$ENDIF}
       exit new Folder(fn);
-    end;    
+    end;
   end;
 
 end.

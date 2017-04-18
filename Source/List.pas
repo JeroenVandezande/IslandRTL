@@ -6,7 +6,7 @@ type
   Predicate<T> = public delegate (Obj: T): Boolean;
   Comparison<T> = public delegate (x: T; y: T): Integer;
 
-  ListEnumerator<T> = class(IEnumerator<T>)
+  ListEnumerator<T> = public class(IEnumerator<T>)
   private
     fList: List<T>;
     fCurrentIndex: Integer;
@@ -72,6 +72,11 @@ type
     method Sort(Comparison: Comparison<T>);
 
     method ToArray: array of T;
+    method CopyTo(&array: array of T);
+    method CopyTo(&array: array of T; arrayIndex: Integer);
+    {$HIDE W27}
+    method CopyTo(&index: Integer; &array: array of T; arrayIndex: Integer; &count: Integer);
+    {$SHOW W27}
 
     property Capacity: Integer read length(fItems);
 
@@ -127,7 +132,8 @@ begin
     if lLength > 0 then begin
       Grow(lLength);
       for i: Integer := 0 to lLength-1 do
-        SetItem(i, aItems[i]);
+        fItems[i] := aItems[i];
+      fCount := lLength;
     end
     else begin
       Clear();
@@ -144,9 +150,9 @@ begin
   if lLength > 0 then begin
     fCount := 0;
     Grow(lLength);
-    fCount := lLength;
     for i: Integer := 0 to lLength-1 do
-      SetItem(i, aArray[i]);    
+      fItems[i] := aArray[i];
+    fCount := lLength;
   end
   else begin
     Clear();
@@ -157,7 +163,7 @@ constructor List<T>(aSequence: ISequence<T>);
 begin
   var lLength := aSequence.Count; // ineffficient; looks the sequence twice :(
   if lLength > 0 then begin
-    for each s in aSequence do 
+    for each s in aSequence do
       &Add(s);
   end
   else begin
@@ -174,8 +180,8 @@ end;
 method List<T>.Add(anItem: T);
 begin
   if fCount = Capacity then Grow(Capacity+1);
+  fItems[fCount] := anItem;
   inc(fCount);
-  SetItem(fCount-1, anItem);
 end;
 
 method List<T>.AddRange(Items: List<T>);
@@ -185,7 +191,7 @@ begin
       Grow(fCount + Items.Count);
     end;
     for i: Integer := 0 to Items.Count-1 do begin
-      SetItem(fCount, Items[i]);
+      fItems[fCount] := Items[i];
       inc(fCount);
     end;
   end;
@@ -198,7 +204,7 @@ begin
       Grow(fCount + Items.Count);
     end;
     for i: Integer := 0 to length(Items)-1 do begin
-      SetItem(fCount, Items[i]);
+      fItems[fCount] := Items[i];
       inc(fCount);
     end;
   end;
@@ -373,8 +379,7 @@ end;
 method List<T>.ToArray: array of T;
 begin
   result := new array of T(fCount);
-  for i: Integer :=0 to fCount -1 do
-    result[i] := self[i];
+  CopyTo(result);
 end;
 
 method List<T>.Grow(aCapacity: Integer);
@@ -442,6 +447,33 @@ end;
 method List<T>.GetEnumerator: IEnumerator<T>;
 begin
   exit new ListEnumerator<T>(Self);
+end;
+
+method List<T>.CopyTo(&array: array of T);
+begin
+  if length(&array)< fCount then new ArgumentException('The number of elements in the source List<T> is greater than the number of elements that the destination array can contain.');
+  CopyTo(0, &array, 0, fCount);
+end;
+
+method List<T>.CopyTo(&array: array of T; arrayIndex: Integer);
+begin
+  if arrayIndex <0 then new ArgumentOutOfRangeException('arrayIndex is less than 0.');
+  if length(&array)< fCount+arrayIndex then new ArgumentException('The number of elements in the source List<T> is greater than the available space from arrayIndex to the end of the destination array.');
+  CopyTo(0, &array, arrayIndex, fCount);
+end;
+
+method List<T>.CopyTo(&index: Integer; &array: array of T; arrayIndex: Integer; &count: Integer);
+begin
+  if not assigned(&array) then new ArgumentNullException('array is nil.');
+  if &index <0 then new ArgumentOutOfRangeException('index is less than 0.');
+  if arrayIndex <0 then new ArgumentOutOfRangeException('arrayIndex is less than 0.');
+  if &count <0 then new ArgumentOutOfRangeException('count is less than 0.');
+  if &index >= fCount then new ArgumentException('index is equal to or greater than the Count of the source List<T>.');
+  if &index+&count > fCount then new ArgumentException('index plus count is greater than the Count of the source List<T>.');
+  if arrayIndex+&count > length(&array) then new ArgumentException('count is greater than the available space from arrayIndex to the end of the destination array.');
+
+  for i:Integer := 0 to &count -1 do
+    &array[arrayIndex+i] := fItems[&index+i];
 end;
 
 

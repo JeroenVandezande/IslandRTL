@@ -6,25 +6,27 @@ type
   SeekOrigin = public enum (&Begin, Current, &End);
 
   Stream = public abstract class
+  private
+    method GetLength: Int64;
+    method SetPosition(value: Int64);
+    method GetPosition: Int64;
   protected
-    method GetLength: Int64; virtual;
-    method SetPosition(value: Int64); virtual;
-    method GetPosition: Int64; virtual;
     method IsValid: Boolean; abstract;
   public
-    method CanRead: Boolean; abstract;
-    method CanSeek: Boolean; abstract;
-    method CanWrite: Boolean;abstract;
+    property CanRead: Boolean read; abstract;
+    property CanSeek: Boolean read; abstract;
+    property CanWrite: Boolean read; abstract;
     method Seek(Offset: Int64; Origin: SeekOrigin): Int64; abstract;
-    method Close; virtual;
-    method &Read(const buf: ^Void; Count: UInt32): UInt32; abstract;
-    method &Write(const buf: ^Void; Count: UInt32): UInt32; abstract;
-    method &Read(Buffer: array of Byte; Offset: UInt32; Count: UInt32): UInt32; 
-    method &Write(Buffer: array of Byte; Offset: UInt32; Count: UInt32): UInt32;
+    method Close; virtual; empty;
+    method Flush; virtual; empty;
+    method &Read(const buf: ^Void; Count: Int32): Int32; abstract;
+    method &Write(const buf: ^Void; Count: Int32): Int32; abstract;
+    method &Read(Buffer: array of Byte; Offset: Int32; Count: Int32): Int32;
+    method &Write(Buffer: array of Byte; Offset: Int32; Count: Int32): Int32;
     method CopyTo(Destination: Stream);
+    property Length: Int64 read GetLength; virtual;
     method SetLength(value: Int64); virtual;
-    property Length: Int64 read GetLength write SetLength;
-    property Position: Int64 read GetPosition write SetPosition;
+    property Position: Int64 read GetPosition write SetPosition; virtual;
   end;
 
 implementation
@@ -53,18 +55,13 @@ begin
   raise new NotSupportedException;
 end;
 
-method Stream.Close;
-begin
- // empty
-end;
-
 method Stream.CopyTo(Destination: Stream);
 const
   bufsize = 4*1024; //4 kb
 begin
   if Destination = nil then raise new Exception('Destination is null');
-  if not self.CanRead() then raise new NotSupportedException;
-  if not Destination.CanWrite() then raise new NotSupportedException;
+  if not self.CanRead then raise new NotSupportedException;
+  if not Destination.CanWrite then raise new NotSupportedException;
   var buf: array [bufsize] of Byte := InternalCalls.Undefined<array [bufsize] of Byte>();
   while true do begin
     var rest := &Read(@buf[0],bufsize);
@@ -73,20 +70,20 @@ begin
   end;
 end;
 
-method Stream.Read(Buffer: array of Byte; Offset: UInt32; Count: UInt32): UInt32;
+method Stream.Read(Buffer: array of Byte; Offset: Int32; Count: Int32): Int32;
 begin
   if not CanRead then raise new NotSupportedException;
-  if Buffer.Length < Offset then raise new Exception("offset was out of range.");
-  if Buffer.Length < Offset + Count  then raise new ArgumentOutOfRangeException('Offset plus Count is greater than the length of Buffer.');
+  if Buffer.Length < Offset then raise Utilities.CreateIndexOutOfRangeException(Offset, Buffer.Length-1);
+  if Buffer.Length < Offset + Count then raise new ArgumentOutOfRangeException('Offset plus Count is greater than the length of Buffer.');
   if Count = 0 then exit 0;
   var buf: ^Void := @(Buffer[Offset]);
   exit &Read(buf,Count);
 end;
 
-method Stream.Write(Buffer: array of Byte; Offset: UInt32; Count: UInt32): UInt32;
+method Stream.Write(Buffer: array of Byte; Offset: Int32; Count: Int32): Int32;
 begin
   if not CanWrite then raise new NotSupportedException;
-  if Buffer.Length < Offset then raise new Exception("offset was out of range.");
+  if Buffer.Length < Offset then raise Utilities.CreateIndexOutOfRangeException(Offset, Buffer.Length-1);
   if Buffer.Length < Offset + Count  then raise new ArgumentOutOfRangeException('Offset plus Count is greater than the length of Buffer.');
   if Count = 0 then exit 0;
   var buf: ^Void := @(Buffer[Offset]);

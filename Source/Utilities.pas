@@ -1,10 +1,22 @@
 ﻿namespace RemObjects.Elements.System;
 
 type
+  MAllocFunc nested in SharedMemory = function(size: {$IFDEF WINDOWS}{$IFDEF i386}UInt32{$ELSE}UInt64{$ENDIF}{$ELSE}rtl.size_t{$ENDIF}): ^Void;
+  CollectFunc nested in SharedMemory = procedure;
+  SetFinalizerFunc nested in SharedMemory = procedure(val: ^Void; aFunc: gc.GC_finalization_proc);
+  SharedMemory = record
+  public
+    malloc: MAllocFunc;
+    setfinalizer: SetFinalizerFunc;
+    collect: CollectFunc;
+  end;
   Utilities = public static class
   private
     class var fFinalizer: ^Void;
     class var fLoaded: Integer;
+    class var fLock: Integer;
+    {$IFDEF POSIX}[LinkOnce]{$ENDIF}
+    class var fSharedMemory: SharedMemory;
   public
     [SymbolName('__abstract')]
     class method AbstractCall;
@@ -16,29 +28,58 @@ type
     class method IsInstance(aInstance: Object; aType: ^Void): Object;
     begin
       if aInstance = nil then exit nil;
+      if aType = nil then exit nil;
       var lTTY := ^^IslandTypeInfo(InternalCalls.Cast(aInstance))^;
+      var lTypeHash1 := ^IslandTypeInfo(aType)^.Hash1;
+      var lTypeHash2 := ^IslandTypeInfo(aType)^.Hash2;
       loop begin
-        if lTTY = ^IslandTypeInfo(aType) then exit aInstance;
+        if SameType(lTTY, aType, lTypeHash1, lTypeHash2) then exit aInstance;
         lTTY := lTTY^.ParentType;
         if lTTY = nil then exit nil;
       end;
+    end;
+
+    class method SameString(aLeft, aRight: ^AnsiChar): Boolean; private;
+    begin
+      if (aLeft = nil) or (aRight = nil) then exit false;
+      loop begin
+        if aLeft^ <> aRight^ then exit false;
+        if aLeft^ = #0 then exit true;
+      end;
+    end;
+
+    class method SameType(aLeft, aRight: ^Void; aRightHash1, aRightHash2: Int64): Boolean; inline; private;
+    begin // this is a fast way to check for type equivalence and support cross dll type matches.
+      exit (aLeft = aRight) or (assigned(aLeft) and (^IslandTypeInfo(aLeft)^.Hash1 = aRightHash1)and (^IslandTypeInfo(aLeft)^.Hash2 = aRightHash2) and (SameString(^IslandTypeInfo(aLeft)^.Ext^.Name, ^IslandTypeInfo(aRight)^.Ext^.Name)));
     end;
 
     [SymbolName('__isintfinst')]
     class method IsInterfaceInstance(aInstance: Object; aType: ^Void; aHashCode: Cardinal): ^Void;
     begin
       if aInstance =nil then exit nil;
+      if aType = nil then exit nil;
       var lIntf := ^^IslandTypeInfo(InternalCalls.Cast(aInstance))^^.InterfaceType;
       if lIntf = nil then exit nil;
+      var lIntfHash1 := ^IslandTypeInfo(aType)^.Hash1;
+      var lIntfHash2 := ^IslandTypeInfo(aType)^.Hash2;
       aHashCode := aHashCode mod lIntf^.HashTableSize;
       var lHashEntry := (@lIntf^.FirstEntry)[aHashCode];
       if lHashEntry = nil then exit nil;
       repeat
-        if lHashEntry^ = aType then
+        if SameType(lHashEntry^, aType, lIntfHash1, lIntfHash2) then
           exit aType;
         inc(lHashEntry);
       until lHashEntry^ = nil;
       exit nil;
+    end;
+
+    [SymbolName('__newindexoutofrange')]
+    class method CreateIndexOutOfRangeException(aIndex, aMax: NativeUInt): Exception;
+    begin
+      if aMax = 0 then
+        exit new IndexOutOfRangeException('Array index '+aIndex+' is outside of the valid range (array is empty)')
+      else
+        exit new IndexOutOfRangeException('Array index '+aIndex+' is outside of the valid range (0..'+(aMax-1)+')');
     end;
 
     [SymbolName('__newinvalidcast')]
@@ -47,11 +88,112 @@ type
       exit new InvalidCastException('Invalid cast');
     end;
 
+    [SymbolName('__newdividebyzero')]
+    class method CreateDivideByZeroException: Exception;
+    begin
+      exit new DivideByZeroException;
+    end;
+
+    [SymbolName('__newnullrefexception')]
+    class method CreateNullReferenceException: Exception;
+    begin
+      exit new NullReferenceException;
+    end;
+    {$IFDEF WINDOWS}var fMapping: rtl.HANDLE;{$ENDIF}
+    method LoadGC; private;
+    begin
+      SpinLockEnter(var fLock);
+      try
+        if InternalCalls.CompareExchange(var fLoaded, 1, 0 ) = 1 then begin
+          exit;
+        end;
+        {$IFDEF WINDOWS}
+        var FN: array[0..28] of Char;
+        FN[0] := '_';
+        FN[1] := '_';
+        FN[2] := 'R';
+        FN[3] := 'e';
+        FN[4] := 'm';
+        FN[5] := 'O';
+        FN[6] := 'b';
+        FN[7] := 'j';
+        FN[8] := 'e';
+        FN[9] := 'c';
+        FN[10] := 't';
+        FN[11] := 's';
+        FN[12] := 'I';
+        FN[13] := 's';
+        FN[14] := 'l';
+        FN[15] := 'a';
+        FN[16] := 'n';
+        FN[17] := 'd';
+        FN[18] := '0'; // Version, increase when adding stuff or making the class layout incompatible
+        var lID := rtl.GetCurrentProcessId;
+        FN[19] := Char(Integer('a')+Integer((lID shr 0) and $f));
+        FN[20] := Char(Integer('a')+Integer((lID shr 4) and $f));
+        FN[21] := Char(Integer('a')+Integer((lID shr 8) and $f));
+        FN[22] := Char(Integer('a')+Integer((lID shr 12) and $f));
+        FN[23] := Char(Integer('a')+Integer((lID shr 16) and $f));
+        FN[24] := Char(Integer('a')+Integer((lID shr 20) and $f));
+        FN[25] := Char(Integer('a')+Integer((lID shr 24) and $f));
+        FN[26] := Char(Integer('a')+Integer((lID shr 28) and $f));
+        FN[27] := #0;
+
+        fMapping := rtl.CreateFileMappingW( rtl.INVALID_HANDLE_VALUE, nil, rtl.PAGE_READWRITE, 0, 8, @FN[0]);
+
+        if fMapping = nil then begin
+          LocalGC;
+          raise new Exception('Cannot create file mapping for memory sharing, this should not happen!');
+        end;
+        var lNew := rtl.GetLastError <> rtl.ERROR_ALREADY_EXISTS;
+        var p: ^NativeInt := ^NativeInt(rtl.MapViewOfFile(fMapping, rtl.FILE_MAP_WRITE, 0, 0, 8));
+        if p = nil then begin
+          LocalGC;
+          raise new Exception('Cannot create file mapping for memory sharing, this should not happen!');
+        end;
+        if lNew then begin
+          LocalGC;
+          InternalCalls.VolatileWrite(var p^, NativeInt(@fSharedMemory));
+        end else begin
+          loop begin
+            var lData: ^SharedMemory := ^SharedMemory(InternalCalls.VolatileRead(var p^));
+            if lData = nil then Thread.Sleep(1) else begin
+              fSharedMemory := lData^;
+              break;
+            end;
+          end;
+        end;
+        rtl.UnmapViewOfFile(p);
+        if not lNew then begin
+          rtl.CloseHandle(fMapping);
+          fMapping := rtl.INVALID_HANDLE_VALUE;
+        end;
+        {$ELSE}
+        LocalGC;
+        {$ENDIF}
+      finally
+        SpinLockExit(var fLock);
+      end;
+    end;
+    {$IFDEF POSIX}[LinkOnce, DllExport]{$ENDIF}
+    method LocalGC; private;
+    begin
+      gc.GC_INIT;
+      fSharedMemory.collect := @gc.GC_gcollect;
+      fSharedMemory.malloc := @gc.GC_malloc;
+      fSharedMemory.setfinalizer := @SetFinalizer;
+    end;
+
+    method SetFinalizer(aVal: ^Void; aProc: gc.GC_finalization_proc);
+    begin
+      gc.GC_register_finalizer_no_order(aVal, aProc, nil, nil, nil);
+    end;
+    const FinalizerIndex = 4 + {$IFDEF I386}4{$ELSE}2{$ENDIF};
     [SymbolName('__newinst')]
     class method NewInstance(aTTY: ^Void; aSize: NativeInt): ^Void;
     begin
       if fFinalizer = nil then begin
-        fFinalizer := ^^Void(InternalCalls.GetTypeInfo<Object>())[4];
+        fFinalizer := ^^Void(InternalCalls.GetTypeInfo<Object>())[FinalizerIndex]; // keep in sync with compiler!
       end;
 
       if fLoaded = 0 then
@@ -59,18 +201,19 @@ type
           {$IFNDEF NOGC}
           gc.GC_INIT;
           {$ENDIF}
-          result := ^Void(-1);
+      result := ^Void(-1);
         end;
       {$IFNDEF NOGC}
-      result := gc.GC_malloc(aSize);
+      if fLoaded = 0 then LoadGC;
+      result := fSharedMemory.malloc(aSize);
       {$ELSE}
       result := rtl.malloc(aSize);
       {$ENDIF}
       ^^Void(result)^ := aTTY;
       {$IFDEF WINDOWS}ExternalCalls.{$ELSE}rtl.{$ENDIF}memset(^Byte(result) + sizeOf(^Void), 0, aSize - sizeOf(^Void));
       {$IFNDEF NOGC}
-      if ^^Void(aTTY)[4] <> fFinalizer then begin
-        gc.GC_register_finalizer_no_order(result, @GC_finalizer, nil, nil, nil);
+      if ^^Void(aTTY)[FinalizerIndex] <> fFinalizer then begin
+        fSharedMemory.setfinalizer(result, @GC_finalizer);
       end;
       {$ENDIF}
     end;
@@ -79,7 +222,7 @@ type
     class method NewArray(aTY: ^Void; aElementSize, aElements: NativeInt): ^Void;
     begin
       result := NewInstance(aTY, sizeOf(^Void) + sizeOf(NativeInt) + aElementSize * aElements);
-      InternalCalls.Cast<&Array>(result).fLength := aElements;
+      (@InternalCalls.Cast<&Array>(result).fLength)^ := aElements;
     end;
 
     [SymbolName('__newdelegate')]
@@ -98,11 +241,28 @@ type
     [SymbolName('llvm.returnaddress')]
     class method GetReturnAddress(aLevel: Integer): ^Void; external;
 
+    // These two functions are used for the debug engine, to find out the type & "ToString" value of an object.
+    [SymbolName('ElementsGetTypeName'), Used]
+    class method GetObjectTypeName(aObj: Object): ^WideChar;
+    begin
+      if aObj = nil then exit nil;
+      var s := aObj.GetType.Name.ToCharArray(true); // this will work as the GC is paused during debug.
+      exit @s[0];
+    end;
+
+    [SymbolName('ElementsObjectToString'), Used]
+    class method GetTypeDescription(aObj: Object): ^WideChar;
+    begin
+      if aObj = nil then exit nil;
+      var s := aObj:ToString():ToCharArray(true);
+      exit @s[0];
+    end;
+
     class method SuppressFinalize(o: Object);
     begin
       {$IFNDEF NOGC}
       if o <> nil then
-        GC.GC_register_finalizer_no_order(InternalCalls.Cast(o), nil, nil, nil, nil);
+        fSharedMemory.setfinalizer(InternalCalls.Cast(o), nil);
       {$ENDIF}
     end;
 
@@ -110,7 +270,7 @@ type
     begin
       {$IFNDEF NOGC}
       for i: Integer := 0 to c -1 do
-        GC.GC_gcollect(); 
+        fSharedMemory.collect;
       {$ENDIF}
     end;
 
@@ -127,7 +287,7 @@ type
        {$ENDIF}
      end;
     end;
-    
+
     class method SpinLockExit(var x: Integer);
     begin
       InternalCalls.VolatileWrite(var x, 0);
@@ -162,7 +322,7 @@ type
     begin
       InternalCalls.VolatileWrite(var x, NativeInt(Int64(-1)));
     end;
-   
+
     method CalcHash(const buf: ^Void; len: Integer): Integer;
     begin
       var pb:= ^Byte(buf);
@@ -241,7 +401,9 @@ type
 {$G+}
 method GC_finalizer(obj, d: ^Void); assembly;
 begin
+  {$HIDE W25}
   InternalCalls.Cast<Object>(obj).Finalize;
+  {$SHOW W25}
 end;
 
 end.

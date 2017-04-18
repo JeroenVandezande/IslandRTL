@@ -15,14 +15,14 @@ type
     {$ELSE}
     fcs: rtl.pthread_mutex_t;
     {$ENDIF}
-  public 
+  public
     constructor;
     method Wait;
     method Release;
     method Dispose;
   end;
  {$ENDIF}
-  
+
   SingleLinkedList<T> = class
   where
     T is class;

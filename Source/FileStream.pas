@@ -6,11 +6,11 @@ type
   IOException = public class(Exception)
   end;
 
-  FileMode = public enum(CreateNew, Create, Open, OpenOrCreate, Truncate);
+  FileMode = public enum(CreateNew, &Create, Open, OpenOrCreate, Truncate);
   FileAccess = public enum(&Read, &Write, ReadWrite);
   FileShare = public enum(None, &Read, &Write, ReadWrite, Delete);
 
-  FileStream = class(Stream)
+  FileStream = public class(Stream)
   private
     {$IFDEF WINDOWS}
     fHandle: rtl.HANDLE := rtl.INVALID_HANDLE_VALUE;
@@ -20,19 +20,21 @@ type
     fHandle: ^rtl._IO_FILE;
     {$ENDIF}
     fAccess: FileAccess;
+    method GetLength: Int64;
   protected
     method IsValid: Boolean; override;
   public
     constructor(FileName: String; Mode: FileMode; Access: FileAccess; Share: FileShare := FileShare.Read);
     finalizer;
-    method CanRead: Boolean; override;
-    method CanSeek: Boolean; override;
-    method CanWrite: Boolean; override;
+    property CanRead: Boolean read (fAccess ≠ FileAccess.Write) and IsValid; override;
+    property CanSeek: Boolean read IsValid; override;
+    property CanWrite: Boolean read (fAccess <> FileAccess.Read) and IsValid; override;
     method Seek(Offset: Int64; Origin: SeekOrigin): Int64; override;
-    method Flush;
+    method Flush; override;
     method Close; override;
-    method &Read(const buf: ^Void; Count: UInt32): UInt32; override;
-    method &Write(const buf: ^Void; Count: UInt32): UInt32;override;
+    method &Read(const buf: ^Void; Count: Int32): Int32; override;
+    method &Write(const buf: ^Void; Count: Int32): Int32;override;
+    property Length: Int64 read GetLength; override;
     method SetLength(value: Int64); override;
     property Name: String; readonly;
   end;
@@ -94,21 +96,6 @@ begin
   Close;
 end;
 
-method FileStream.CanRead: Boolean;
-begin
-  exit (fAccess <> FileAccess.Write) and IsValid;
-end;
-
-method FileStream.CanSeek: Boolean;
-begin
-  exit IsValid;
-end;
-
-method FileStream.CanWrite: Boolean;
-begin
-  exit (fAccess <> FileAccess.Read) and IsValid;
-end;
-
 method FileStream.IsValid: Boolean;
 begin
   {$IFDEF WINDOWS}
@@ -152,7 +139,7 @@ begin
   {$IFDEF ANDROID}
   result := rtl.fseek(fHandle, Offset, lOrigin);
   CheckForIOError(result);
-  {$ELSE}  
+  {$ELSE}
   CheckForIOError(rtl.fseeko64(fHandle, Offset, lOrigin));
   var pos: rtl._G_fpos64_t;
   CheckForIOError(rtl.fgetpos64(fHandle,@pos));
@@ -198,7 +185,13 @@ begin
   {$ENDIF}
 end;
 
-method FileStream.Read(const buf: ^Void; Count: UInt32): UInt32;
+method FileStream.GetLength: Int64;
+begin
+  {$HINT implement properly}
+  result := inherited Length;
+end;
+
+method FileStream.Read(const buf: ^Void; Count: Int32): Int32;
 begin
   if not CanRead then raise new NotSupportedException;
   if buf = nil then raise new Exception("argument is null");
@@ -216,7 +209,7 @@ begin
   {$ENDIF}
 end;
 
-method FileStream.Write(const buf: ^Void; Count: UInt32): UInt32;
+method FileStream.Write(const buf: ^Void; Count: Int32): Int32;
 begin
   if not CanWrite then raise new NotSupportedException;
   if buf = nil then raise new Exception("argument is null");

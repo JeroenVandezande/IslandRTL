@@ -110,6 +110,20 @@ type
     constructor(); empty;
   end;
 
+  [AttributeUsage(AttributeTargets.Method)]
+  DisableInliningAttribute = public class(Attribute)
+  private
+  public
+    constructor(); empty;
+  end;
+
+  [AttributeUsage(AttributeTargets.Method)]
+  DisableOptimizationsAttribute = public class(Attribute)
+  private
+  public
+    constructor(); empty;
+  end;
+
   [AttributeUsage(AttributeTargets.Class or AttributeTargets.Struct or
                   AttributeTargets.Enum or AttributeTargets.Constructor or
                   AttributeTargets.Method or AttributeTargets.Property or
@@ -150,6 +164,13 @@ type
 
   [AttributeUsage(AttributeTargets.Method or AttributeTargets.Field)]
   WeakAttribute = public class(Attribute)
+  private
+  public
+    constructor(); empty;
+  end;
+
+  [AttributeUsage(AttributeTargets.Method or AttributeTargets.Field)]
+  LinkOnceAttribute = public class(Attribute)
   private
   public
     constructor(); empty;
@@ -197,7 +218,7 @@ type
     property EntryPoint: String;
   end;
 
-  [AttributeUsage(AttributeTargets.Method or AttributeTargets.Field)]
+  [AttributeUsage(AttributeTargets.Method or AttributeTargets.Field or AttributeTargets.Property or AttributeTargets.Event or AttributeTargets.Struct or AttributeTargets.Class or AttributeTargets.Enum or AttributeTargets.Delegate)]
   DllExportAttribute = public class(Attribute)
   end;
 
@@ -234,6 +255,14 @@ type
     property Constraints: String;readonly;
     property SideEffects: Boolean;readonly;
     property Align: Boolean; readonly;
+  end;
+
+  [AttributeUsage(AttributeTargets.Struct)]
+  UnionAttribute = public class(Attribute)
+  end;
+
+  [AttributeUsage(AttributeTargets.Struct)]
+  PackedAttribute = public class(Attribute)
   end;
 
 end.

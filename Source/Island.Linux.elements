@@ -14,8 +14,10 @@
     <ProjectGuid>{a2c670b6-db38-401a-ae00-71515c87ccc5}</ProjectGuid>
     <Mode>Island</Mode>
     <WarnOnCaseMismatch>True</WarnOnCaseMismatch>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <GenerateDebugInfo>True</GenerateDebugInfo>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug-x86_64' ">
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug-x86_64'">
     <OutputPath>Bin\Debug</OutputPath>
     <DefineConstants>Linux</DefineConstants>
     <EnableAsserts>True</EnableAsserts>
@@ -30,8 +32,9 @@
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
     <Architecture>x86_64</Architecture>
+    <GenerateDebugInfo>True</GenerateDebugInfo>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release-x86_64' ">
+  <PropertyGroup Condition="'$(Configuration)' == 'Release-x86_64'">
     <OutputPath>Bin\Release</OutputPath>
     <DefineConstants>Linux</DefineConstants>
     <EnableAsserts>False</EnableAsserts>
@@ -45,8 +48,9 @@
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
     <Architecture>x86_64</Architecture>
+    <GenerateDebugInfo>True</GenerateDebugInfo>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug-armv6' ">
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug-armv6'">
     <OutputPath>Bin\Debug</OutputPath>
     <DefineConstants>Linux</DefineConstants>
     <EnableAsserts>True</EnableAsserts>
@@ -61,8 +65,9 @@
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
     <Architecture>armv6</Architecture>
+    <GenerateDebugInfo>True</GenerateDebugInfo>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release-armv6' ">
+  <PropertyGroup Condition="'$(Configuration)' == 'Release-armv6'">
     <OutputPath>Bin\Release</OutputPath>
     <DefineConstants>Linux</DefineConstants>
     <EnableAsserts>False</EnableAsserts>
@@ -76,17 +81,15 @@
     <XmlDocWarningLevel>WarningOnPublicMembers</XmlDocWarningLevel>
     <EnableUnmanagedDebugging>False</EnableUnmanagedDebugging>
     <Architecture>armv6</Architecture>
+    <GenerateDebugInfo>True</GenerateDebugInfo>
   </PropertyGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="ManagedThreadPool.pas" />
     <Compile Include="PosixHelpers.pas" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="gc.fx" />
-    <Reference Include="rtl.fx" />
+    <Reference Include="gc" />
+    <Reference Include="rtl" />
   </ItemGroup>
   <PropertyGroup />
   <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.Linux.targets" />

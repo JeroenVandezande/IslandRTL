@@ -65,7 +65,7 @@ type
   public
     constructor;
     begin
-      inherited constructor('Member access on null Reference');
+      inherited constructor('Member access on null reference');
     end;
   end;
 
@@ -82,12 +82,20 @@ type
     end;
   end;
 
+  DivideByZeroException = public class(Exception)
+  public
+    constructor;
+    begin
+      inherited constructor('Divide by zero');
+    end;
+  end;
+
   FormatException = public class(Exception)
   end;
 
   OverflowException = public class(Exception)
   end;
- 
+
   ArgumentNullException = public class(Exception)
   end;
 
@@ -97,5 +105,7 @@ type
   ArgumentException = public class(Exception)
   end;
 
+  IndexOutOfRangeException = public class(Exception)
+  end;
 
 end.
