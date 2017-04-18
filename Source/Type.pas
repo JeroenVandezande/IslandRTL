@@ -466,7 +466,7 @@ type
       end;
       {$IFDEF WINDOWS}
       result := FFI.Call(Pointer, cc, var lParams, lModes, lTypes, &Type);
-      {$ELSEIF POSIX}
+      {$ELSEIF POSIX OR BAREMETAL}
       raise new NotImplementedException();
       {$ELSE}{$ERROR}{$ENDIF}
       for k in Arguments index i do
@@ -975,7 +975,7 @@ method ProtoReadBytes(var aSelf: ^Byte): array of Byte;assembly;
 begin
   var lLen := ProtoReadVarInt(var aSelf);
   result := new Byte[lLen];
-  {$IFDEF POSIX}rtl.{$ELSE}ExternalCalls.{$ENDIF}memcpy(@result[0], aSelf, lLen);
+  {$IFDEF POSIX OR BAREMETAL}rtl.{$ELSE}ExternalCalls.{$ENDIF}memcpy(@result[0], aSelf, lLen);
   aSelf := aSelf + lLen;
 end;
 

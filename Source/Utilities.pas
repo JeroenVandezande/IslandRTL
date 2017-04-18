@@ -3,16 +3,22 @@
 type
   MAllocFunc nested in SharedMemory = function(size: {$IFDEF WINDOWS}{$IFDEF i386}UInt32{$ELSE}UInt64{$ENDIF}{$ELSE}rtl.size_t{$ENDIF}): ^Void;
   CollectFunc nested in SharedMemory = procedure;
+  {$IFNDEF NOGC}
   SetFinalizerFunc nested in SharedMemory = procedure(val: ^Void; aFunc: gc.GC_finalization_proc);
+  {$ENDIF}
   SharedMemory = record
   public
     malloc: MAllocFunc;
+    {$IFNDEF NOGC}
     setfinalizer: SetFinalizerFunc;
+    {$ENDIF}
     collect: CollectFunc;
   end;
   Utilities = public static class
   private
+    {$IFNDEF NOGC}
     class var fFinalizer: ^Void;
+    {$ENDIF}
     class var fLoaded: Integer;
     class var fLock: Integer;
     {$IFDEF POSIX}[LinkOnce]{$ENDIF}
@@ -100,6 +106,7 @@ type
       exit new NullReferenceException;
     end;
     {$IFDEF WINDOWS}var fMapping: rtl.HANDLE;{$ENDIF}
+    {$IFNDEF NOGC}
     method LoadGC; private;
     begin
       SpinLockEnter(var fLock);
@@ -189,13 +196,15 @@ type
       gc.GC_register_finalizer_no_order(aVal, aProc, nil, nil, nil);
     end;
     const FinalizerIndex = 4 + {$IFDEF I386}4{$ELSE}2{$ENDIF};
+    {$ENDIF}
     [SymbolName('__newinst')]
     class method NewInstance(aTTY: ^Void; aSize: NativeInt): ^Void;
     begin
+      {$IFNDEF NOGC}
       if fFinalizer = nil then begin
         fFinalizer := ^^Void(InternalCalls.GetTypeInfo<Object>())[FinalizerIndex]; // keep in sync with compiler!
       end;
-
+      {$ENDIF}
       if fLoaded = 0 then
         if InternalCalls.CompareExchange(var fLoaded, 1, 0 ) <> 1 then begin
           {$IFNDEF NOGC}

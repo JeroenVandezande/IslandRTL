@@ -91,6 +91,9 @@
     <Reference Include="gc" />
     <Reference Include="rtl" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
   <PropertyGroup />
   <Import Project="$(MSBuildExtensionsPath)\RemObjects Software\Elements\RemObjects.Elements.Island.Linux.targets" />
   <Import Project="Island.Shared.projitems" Label="Shared" />

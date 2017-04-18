@@ -497,6 +497,8 @@ type
       var b := StringToUTF8(aValue, false);
       result := new Byte[b.Length];
       rtl.memcpy(@result[0], @b[0], b.Length);
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSE}
       var lNewData: ^AnsiChar := nil;
       var lNewLen: rtl.size_t := iconv_helper(TextConvert.fUTF16ToCurrent, ^AnsiChar(aValue.FirstChar), aValue.Length * 2, aValue.Length + 5, out lNewData);
@@ -524,6 +526,8 @@ type
       rtl.MultiByteToWideChar(rtl.CP_ACP, 0, rtl.LPCCH(@aValue[aOffset]), aCount, @result.fFirstChar, len);
       {$ELSEIF ANDROID}
       exit TextConvert.UTF8ToString(aValue, aOffset, aCount);
+      {$ELSEIF BAREMETAL}
+      //TODO
       {$ELSE}
       var lNewData: ^AnsiChar := nil;
       var lNewLen: rtl.size_t := iconv_helper(TextConvert.fCurrentToUtf16, ^AnsiChar(@aValue[aOffset]), aCount, aCount * 2 + 5, out lNewData);

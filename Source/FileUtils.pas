@@ -18,7 +18,7 @@ type
       exit (Attr and rtl.S_IFMT) = rtl.S_IFDIR;
       {$ELSE}{$ERROR}{$ENDIF}
     end;
-    class method IsFile(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
+    class method IsFile(Attr: {$IFDEF WINDOWS}rtl.DWORD{$ELSEIF POSIX OR BAREMETAL}rtl.__mode_t{$ELSE}{$ERROR}{$ENDIF}): Boolean; inline;
     begin
       {$IFDEF WINDOWS}
       if Attr = rtl.INVALID_FILE_ATTRIBUTES then exit false;
