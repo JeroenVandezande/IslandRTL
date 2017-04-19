@@ -5,6 +5,8 @@ type
   AnsiString = public record(IDisposable, IEnumerable<AnsiChar>, IEnumerable)
   private
 
+    chars: ^AnsiChar;
+
     method GetChar(aIndex: UInt32): AnsiChar;
     begin
       if aIndex >= Length then exit #0;
@@ -19,8 +21,6 @@ type
       p^ := aChar;
     end;
 
-    chars: ^AnsiChar;
-  protected
   public
 
     method GetEnumerator: IEnumerator<AnsiChar>;iterator;
@@ -54,7 +54,14 @@ type
     begin
       Length := rtl.strlen(aValue);
       chars := ^AnsiChar(rtl.malloc(Length + 1)); 
-      rtl.stpncpy(aValue, chars, Length + 1);
+      rtl.stpncpy(chars, aValue, Length + 1);
+    end;
+
+    constructor(aValue: ^AnsiChar; aLength: UInt32);
+    begin
+      Length := aLength;
+      chars := ^AnsiChar(rtl.malloc(Length + 1)); 
+      rtl.stpncpy(chars, aValue, Length + 1);
     end;
 
     constructor(aValue: ^Char);
@@ -102,19 +109,16 @@ type
     begin
       if (Object(aLeft) = nil) or (aLeft.Length = 0) then exit aRight;
       if (Object(aRight) = nil) or (aRight.Length = 0) then exit aLeft;
-      result := ^AnsiChar(rtl.malloc(aLeft.Length + aRight.Length));
+      var l := aLeft.Length + aRight.Length;
+      result := new AnsiString(l);
+      rtl.stpncpy(result.chars, aLeft.chars, aLeft.Length);
+      rtl.strncat(result.chars, aRight.chars, aRight.Length);
     end;
 
     property Char[aIndex: UInt32]: AnsiChar read GetChar write SetChar; default;
 
     //public Fields
     Length: UInt32;
-
-    method Testje;
-    begin
-      var s: AnsiString := 'Test';
-      var s2 := s + 'Bar';
-    end;
 
   end;
 
