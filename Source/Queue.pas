@@ -3,7 +3,7 @@
 interface
 
 type
-  QueueEnumerator<T> = public class(IEnumerator<T>)
+  QueueEnumerator<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF}, IEnumerator<T>)
   private
     fArray: array of T;
     fCurrentIndex: Integer := 0;
@@ -12,11 +12,13 @@ type
   public
     constructor (aQueue: Queue<T>);
     method MoveNext: Boolean;
+    {$IFNDEF NOGC}
     method Dispose;
+    {$ENDIF}
     property Current: T read GetCurrent;
   end;
 
-  Queue<T> = public class(IEnumerable<T>)
+  Queue<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF}, IEnumerable<T>)
   private
     fItems: array of T;
     fTail: Integer := 0;
@@ -186,10 +188,10 @@ begin
   inc(fCurrentIndex);
   result := fCurrentIndex < length(fArray);
 end;
-
+{$IFNDEF NOGC}   
 method QueueEnumerator<T>.Dispose;
 begin
 
 end;
-
+{$ENDIF}
 end.

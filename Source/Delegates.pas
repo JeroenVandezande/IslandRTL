@@ -3,7 +3,7 @@
 interface
 
 type
-  &Delegate = public abstract class(Object)
+  &Delegate = public abstract class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF})
   assembly
     fSelf: Object;
     fPtr: ^Void;

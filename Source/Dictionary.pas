@@ -9,7 +9,7 @@ type
     Value: U;
   end;
 
-  Dictionary<T, U> = public class
+  Dictionary<T, U> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF})
   private
     const EMPTYHASH: Integer = 0;
     const EMPTY_BUCKET: Integer = 0;

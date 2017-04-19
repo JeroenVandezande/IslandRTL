@@ -3,7 +3,7 @@
 interface
 
 type
-  KeyValuePair<T, U> = public class
+  KeyValuePair<T, U> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF})
   where T is Object, U is Object;
   public
     constructor(aKey: T; aValue: U);

@@ -8,7 +8,7 @@ type
     Item : T;
   end;
 
-  HashSet<T> = public class
+  HashSet<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF})
   private
     const EMPTYHASH: Integer = 0;
     const EMPTY_BUCKET: Integer = 0;

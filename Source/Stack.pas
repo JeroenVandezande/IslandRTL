@@ -3,7 +3,7 @@
 interface
 
 type
-  StackEnumerator<T> = public class(IEnumerator<T>)
+  StackEnumerator<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF}, IEnumerator<T>)
   private
     fItems: array of T;
     fCurrentIndex: Integer := 0;
@@ -12,7 +12,9 @@ type
   public
     constructor (aStack: Stack<T>);
     method MoveNext: Boolean;
+    {$IFNDEF NOGC}
     method Dispose;
+    {$ENDIF}
     property Current: T read GetCurrent;
   end;
 
@@ -158,10 +160,10 @@ begin
   result := fCurrentIndex < length(fItems);
   inc(fCurrentIndex);
 end;
-
+{$IFNDEF NOGC}
 method StackEnumerator<T>.Dispose;
 begin
 
 end;
-
+{$ENDIF}
 end.

@@ -6,7 +6,7 @@ type
   Predicate<T> = public delegate (Obj: T): Boolean;
   Comparison<T> = public delegate (x: T; y: T): Integer;
 
-  ListEnumerator<T> = public class(IEnumerator<T>)
+  ListEnumerator<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF}, IEnumerator<T>)
   private
     fList: List<T>;
     fCurrentIndex: Integer;
@@ -16,10 +16,12 @@ type
     constructor (aList: List<T>);
     method MoveNext: Boolean;
     property Current: T read GetCurrent;
+    {$IFNDEF NOGC}
     method Dispose;
+    {$ENDIF}
   end;
 
-  List<T> = public class(IEnumerable<T>, ICollection<T>)
+  List<T> = public class({$IFNDEF NOGC}Object{$ELSE}UnmanagedObject{$ENDIF}, IEnumerable<T>, ICollection<T>)
   private
     fItems: array of T;
     fCount: Integer := 0;
@@ -103,11 +105,11 @@ method ListEnumerator<T>.GetCurrent: T;
 begin
   exit fList[fCurrentIndex];
 end;
-
+{$IFNDEF NOGC}
 method ListEnumerator<T>.Dispose;
 begin
 end;
-
+{$ENDIF}
 method List<T>.SetItem(&Index: Integer; Value: T);
 begin
   CheckIndex(&Index);
