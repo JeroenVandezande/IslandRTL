@@ -21,7 +21,7 @@ type
     method GetNonGenericEnumerator: IEnumerator; implements IEnumerable.GetEnumerator;
     method GetEnumerator: IEnumerator<Char>;iterator;
   assembly
-     {$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
+    {$IFDEF POSIX AND NOT ANDROID}
     class var fUTF16ToCurrent, fCurrentToUtf16: rtl.iconv_t;
     {$ENDIF}
      class method AllocString(aLen: Integer): String;
@@ -714,8 +714,9 @@ method String.ToLower(aInvariant: Boolean := false): String;
 begin
   {$IFDEF WINDOWS}
   exit doLCMapString(aInvariant, LCMapStringTransformMode.Lower);
-{$ELSEIF BAREMETAL}
-  //TODO{$ELSEIF POSIX}
+  {$ELSEIF BAREMETAL}
+  //TODO
+  {$ELSEIF POSIX}
   {$HINT Non-Invariant ToLower is not implemented for Linux, yet}
   var b := TextConvert.StringToUTF32LE(self);
   for i: Int32 := 0 to RemObjects.Elements.System.length(b)-1 step 4 do begin

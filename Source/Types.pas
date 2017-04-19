@@ -112,7 +112,7 @@ method Char.ToLower(aInvariant: Boolean := false): Char;
 begin
   {$IFDEF WINDOWS}
   //exit doLCMapString(aInvariant, LCMapStringTransformMode.Lower);
-  {$ELSEIF POSIX}
+  {$ELSEIF POSIX OR BAREMETAL}
   {$HINT Non-Invariant ToLower is not implemented for Linux, yet}
   var b := TextConvert.StringToUTF32LE(self);
   var ch := b[0] + (Int32(b[1]) shl 8) + (Int32(b[2]) shl 16) + (Int32(b[3]) shl 24);
@@ -131,7 +131,7 @@ method Char.ToUpper(aInvariant: Boolean := false): Char;
 begin
   {$IFDEF WINDOWS}
   //exit doLCMapString(aInvariant, LCMapStringTransformMode.Upper);
-  {$ELSEIF POSIX}
+  {$ELSEIF POSIX OR BAREMETAL}
   {$HINT Non-Invariant ToUpper is not implemented for Linux, yet}
   var b := TextConvert.StringToUTF32LE(self);
   var ch := b[0] + (Int32(b[1]) shl 8) + (Int32(b[2]) shl 16) + (Int32(b[3]) shl 24);

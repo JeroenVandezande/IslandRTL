@@ -51,10 +51,16 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnsiString.pas">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="BareMetalPosixHelpers.pas">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ManagedThreadPool.pas" />
+    <Compile Include="ManualFreeObject.pas">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="rtl.fx">
