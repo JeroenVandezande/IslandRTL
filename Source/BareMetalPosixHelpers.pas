@@ -43,11 +43,11 @@ type
     class var nargs: Integer;
     class var args: ^^AnsiChar;
     class var envp: ^^AnsiChar;
-    class var
-      [SymbolName('__init_array_start')]
-      __init_array_start: Integer; external;
-      [SymbolName('__init_array_end')]
-      __init_array_end: Integer; external;
+    //class var
+    //  [SymbolName('__init_array_start')]
+    //  __init_array_start: Integer; external;
+    //  [SymbolName('__init_array_end')]
+    //  __init_array_end: Integer; external;
   end;
 
 end.

@@ -114,7 +114,7 @@ type
     constructor(c: ^AnsiChar);
   end;
 
-{$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
+{$IFDEF POSIX AND NOT ANDROID}
 method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.size_t; suggestedlength: Integer; out aresult: ^AnsiChar): Integer; public;
 {$ENDIF}
 
@@ -137,7 +137,7 @@ begin
   {$IFDEF WINDOWS}ExternalCalls.{$ELSEIF POSIX OR BAREMETAL}rtl.{$ELSE}{$ERROR}{$ENDIF}memcpy(@result.fFirstChar, c, aCharCount * 2);
 end;
 
-{$IFDEF (POSIX OR BAREMETAL) AND NOT ANDROID}
+{$IFDEF (POSIX) AND NOT ANDROID}
 method iconv_helper(cd: rtl.iconv_t; inputdata: ^AnsiChar; inputdatalength: rtl.size_t; suggestedlength: Integer; out aresult: ^AnsiChar): Integer;
 begin
   var outputdata := ^AnsiChar(rtl.malloc(suggestedlength));

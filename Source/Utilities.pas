@@ -289,7 +289,7 @@ type
      loop begin
        if InternalCalls.Exchange(var x, 1) = 0 then exit;
        {$IFDEF BAREMETAL}
-       rtl.usleep(10000); // 10mis
+       //rtl.usleep(10000); // 10mis
        {$ELSE}
        if not Thread.Yield() then
          Thread.Sleep(1);

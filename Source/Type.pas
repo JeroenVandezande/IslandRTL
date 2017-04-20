@@ -524,6 +524,8 @@ type
          yield new &Type(lWork^);
        end;
      end;
+    {$ELSEIF BAREMETAL}
+    //Do Nothing
     {$ELSE}
     [SymbolName('__start_ELRTTLRR')]
     class var fStart: ^IslandTypeInfo; external;
@@ -789,7 +791,7 @@ type
       exit not (a = b);
     end;
 
-    class property AllTypes: sequence of &Type read get_AllTypes;
+    {$IFNDEF BAREMETAL}class property AllTypes: sequence of &Type read get_AllTypes;{$ENDIF}
 
     property RTTI: ^IslandTypeInfo read fValue;
     property &Name: String read if fValue = nil then nil else String.FromPAnsiChars(fValue^.Ext^.Name);
